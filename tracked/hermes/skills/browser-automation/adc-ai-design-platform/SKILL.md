@@ -128,6 +128,8 @@ python3 ~/.hermes/skills/browser-automation/adc-ai-design-platform/scripts/adc_a
 
 ## 常见坑
 - 点击项目名称不跳转：改点项目封面图
+- Playwright 登录定位器写死旧 placeholder（如 `请输入手机号`）：改用当前真实 placeholder `输入账号` / `输入密码`
+- AI 生图轮询时反复 `page.reload()`：会打断 SPA 里的生成状态，导致一直等不到结果
 - 以为必须打开预览弹窗才能下载：实际上结果图 `src` 已足够
 - SPA 页面切换后 snapshot 没及时刷新：要主动重新取 `browser_snapshot(full=true)`
 - 只靠视觉判断页面状态：优先结合 `document.body.innerText` 和 `location.href`
