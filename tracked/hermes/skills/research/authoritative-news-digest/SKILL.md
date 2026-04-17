@@ -46,6 +46,9 @@ Observed failure modes:
 - AP hub pages may redirect or be less useful than section pages; in practice `https://apnews.com/world-news`, `https://apnews.com/business`, `https://apnews.com/politics`, and `https://apnews.com/science` were more reliable for discovering fresh article links.
 - Some NPR feed IDs return `403 MissingAuthenticationTokenException`; do not assume a guessed feed ID exists just because another NPR feed works.
 - The Verge feed is Atom, so RSS-only parsing will incorrectly return zero items.
+- CBS feeds can contain many video-only items and the same story can appear in multiple section feeds; filter duplicates by URL/title and prefer text articles over video clips when building a top-news digest.
+- The Verge feed is useful for tech developments, but it also contains reviews, deals, and features; for a "most important news" digest, include only hard-news items with clear public-interest significance.
+- AP article pages may expose `article:published_time` without an explicit timezone offset (for example `2026-04-17T04:08:14`); treat naive timestamps carefully and compare conservatively against the 24-hour window rather than assuming UTC.
 
 ## Workflow
 
