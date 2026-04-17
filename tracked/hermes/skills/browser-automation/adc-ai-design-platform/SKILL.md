@@ -1,7 +1,7 @@
 ---
 name: adc-ai-design-platform
 description: 自动化操作 adc.acsbim.com:7002（Agile Design Cloud）—— 登录、进入项目、导航到 AI 生图、触发生成并提取结果图片。
-version: 1.0.0
+version: 1.1.1
 metadata:
   hermes:
     tags: [browser, adc, wechat, image-generation, vue-spa]
@@ -16,6 +16,7 @@ metadata:
 - 用户要求在 ADC 平台里执行固定业务流程
 - 需要进入“项目空间”中的某个项目并继续操作左侧菜单
 - 需要在“AI绘图 → AI生图”里生成图片并下载结果
+- 需要把 ADC 生成结果可靠地回传到微信或其他平台
 
 ## 关键经验
 1. **项目空间中，进入项目优先点击项目封面图，不要优先点项目名称文字。**
@@ -47,9 +48,15 @@ metadata:
      - 或带 `compare-image` 类名的图片元素
      直接拿到 `src`。
 
-6. **页面内“下载图片”按钮可点击做站内验证，但交付给用户时，最稳妥的是把结果图 URL 直接下载到本地。**
-   - 用 Python `requests.get()` 保存为本地 PNG/JPG
-   - 再通过 `MEDIA:/absolute/path` 回传到微信/聊天平台
+6. **下载后一定要校验真实文件格式，不要只信扩展名或响应头。**
+   - 该站点曾出现：URL/响应头看起来像 `png`，但实际字节内容是 `JPEG`。
+   - 因此下载脚本应按文件头（magic bytes）识别真实格式，再决定保存后缀。
+   - 技能包附带脚本：`scripts/adc_ai_gen_flow.py`
+
+7. **如果目标是发回微信，不要把 `MEDIA:/path` 文本本身当成“已成功发图”。**
+   - 之前真实踩坑：聊天回复中出现 `MEDIA:/tmp/...`，但用户侧并没有真正收到微信原生图片消息。
+   - 对微信交付，要以“用户客户端实际收到”为完成标准。
+   - 在 Hermes/Weixin 链路里，优先走 Weixin 原生直发，而不是仅输出 `MEDIA:` 文本。
 
 ## 推荐流程
 1. 打开登录页
@@ -62,8 +69,9 @@ metadata:
 8. 点击 `开始创作`
 9. 轮询直到出现结果图 / `下载图片`
 10. 提取结果图 `src`
-11. 下载到本地
-12. 回传图片给用户
+11. 使用技能附带脚本 `scripts/adc_ai_gen_flow.py` 下载并按真实文件头修正后缀
+12. 若需要发微信，优先走 Weixin 原生直发
+13. 只有用户客户端真正收到图片，才算完成
 
 ## DOM / 状态检查示例
 ### 查找项目封面图
@@ -97,15 +105,18 @@ const img = [...document.querySelectorAll('img')]
 img ? img.src : null;
 ```
 
-## 下载结果图示例
-```python
-import requests
-url = '<result-image-url>'
-out = '/tmp/adc-ai-gen-result.png'
-r = requests.get(url, timeout=60)
-r.raise_for_status()
-open(out, 'wb').write(r.content)
-print(out)
+## Python 辅助脚本
+技能包附带：`scripts/adc_ai_gen_flow.py`
+
+用途：
+- 下载 ADC 结果图 URL
+- 按真实文件头判断扩展名（jpg/png/gif/webp）
+- 输出最终保存路径，便于后续微信发送
+
+示例：
+```bash
+python3 ~/.hermes/skills/browser-automation/adc-ai-design-platform/scripts/adc_ai_gen_flow.py \
+  'https://example.com/result-image-url'
 ```
 
 ## 常见坑
@@ -113,6 +124,8 @@ print(out)
 - 以为必须打开预览弹窗才能下载：实际上结果图 `src` 已足够
 - SPA 页面切换后 snapshot 没及时刷新：要主动重新取 `browser_snapshot(full=true)`
 - 只靠视觉判断页面状态：优先结合 `document.body.innerText` 和 `location.href`
+- 把 `.png` 扩展名或响应头当成真实格式：要按文件头识别
+- 把 `MEDIA:/path` 当成微信必然送达：不可靠，微信回传要优先走原生直发
 
 ## 验证标准
 - URL 已进入 `#/adcHome/genImg?...`
@@ -121,4 +134,4 @@ print(out)
 - 完成后出现 `下载图片`
 - 能拿到结果图 URL
 - 本地已成功保存图片文件
-- 已通过 `MEDIA:` 回传给用户
+- 如需发微信，接口返回成功且用户客户端实际收到图片
