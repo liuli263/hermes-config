@@ -322,6 +322,64 @@ Type these during an interactive chat session.
 
 Profiles use `~/.hermes/profiles/<name>/` with the same layout.
 
+### Version-managing Hermes config and code on GitHub
+
+When a user wants Hermes configuration, memory, skills, and local Hermes source changes tracked in GitHub, do **not** blindly `git init ~/.hermes` or create a parent repo like `/home/user` or `~/projects`. That can interfere with unrelated nested repos.
+
+Use this safer split-repo layout instead:
+
+1. **Config snapshot repo** — separate repo outside `~/.hermes`, for example:
+   - local: `/home/user/agent-configs/hermes-config`
+   - remote: `owner/hermes-config`
+2. **Hermes source repo** — keep the actual Hermes code repo where it already lives, for example:
+   - local: `~/.hermes/hermes-agent`
+   - remote: `owner/hermes-agent-config`
+
+Recommended workflow:
+
+1. Inspect existing Git state first:
+```bash
+git -C ~/.hermes rev-parse --is-inside-work-tree || true
+git -C ~/.hermes/hermes-agent remote -v || true
+```
+2. Verify that `~/projects/*` and other work repos stay outside the new Git root.
+3. If `gh` or GitHub tokens are unavailable, fall back to **SSH over port 443**:
+```bash
+ssh -T -o StrictHostKeyChecking=accept-new -p 443 git@ssh.github.com
+GIT_SSH_COMMAND='ssh -o StrictHostKeyChecking=accept-new -p 443' \
+  git ls-remote git@ssh.github.com:owner/repo.git
+```
+4. For the config repo, export only versionable files into a tracked snapshot tree such as `tracked/hermes/` rather than committing the live `~/.hermes` directory.
+5. Redact secrets when exporting `config.yaml` or similar files. At minimum redact keys like:
+   - `api_key`
+   - `token`
+   - `secret`
+   - `password`
+   - `authorization_code`
+   Also redact credential-bearing URLs like `https://user:pass@host`.
+6. For the Hermes code repo, if the local repo already tracks upstream open-source code, preserve that relationship by renaming the original remote to `upstream` and pointing `origin` at the user's repo:
+```bash
+git remote rename origin upstream
+git remote add origin git@ssh.github.com:owner/hermes-agent-config.git
+```
+7. Before pushing code changes, run the relevant tests from the Hermes repo's expected environment. In one real setup, `python` was unavailable and the repo required:
+```bash
+source venv/bin/activate
+python3 -m pytest ...
+```
+8. For automation, create scripts in the config repo such as:
+   - `sync_hermes_config.py` — export/redact tracked config
+   - `commit_and_push.sh` — commit/push config snapshot with detailed commit body
+   - `commit_hermes_agent_code.sh` — commit/push local Hermes source changes
+   - `sync_all.sh` — run both
+9. If scheduled auto-sync is requested, prefer a cron job that runs those scripts. Remember that `hermes cron run ID` only queues a manual run for the **next scheduler tick**; verify execution with `last_run_at` and `last_status` rather than assuming it ran immediately.
+
+Why this layout works:
+- avoids polluting `~/projects/*` or the home directory with an umbrella repo
+- keeps secrets out of GitHub by storing sanitized snapshots instead of raw live config
+- preserves a clean fork-style workflow for Hermes source (`upstream` vs `origin`)
+- supports future per-agent separation under a shared parent like `/home/user/agent-configs/`
+
 ### Config Sections
 
 Edit with `hermes config edit` or `hermes config set section.key value`.
