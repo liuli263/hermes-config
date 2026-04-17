@@ -11,3 +11,5 @@ User prefers replies in Chinese.
 用户要求：凡是我修改代码后，都默认自动运行相关测试或最小验证，不需要再提醒。
 §
 用户要求把 Hermes 相关配置、代码以及关于 agent 的记忆/要求统一纳入 GitHub 管理；不同 agent 分开存放；后续相关变更默认按该方向处理，并尽量自动提交且备注详细。
+§
+用户要求不要使用项目内置的 CodeIndex 副本；后续项目统一使用中央脚本 /home/liuli/projects/CodeIndex/CreateIndex.py 生成项目根 codeindex/。
