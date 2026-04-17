@@ -65,6 +65,29 @@ metadata:
    - 对微信交付，要以“用户客户端实际收到”为完成标准。
    - 在 Hermes/Weixin 链路里，优先走 Weixin 原生直发，而不是仅输出 `MEDIA:` 文本。
 
+8. **在定时任务 / 终端脚本里，微信直发可直接调用 `gateway.platforms.weixin.send_weixin_direct`。**
+   - 建议工作目录：Hermes 仓库根目录，例如 `/home/liuli/.hermes/hermes-agent`。
+   - 先执行：`source venv/bin/activate`
+   - 再用仓库内 Python 调用：
+   ```python
+   import asyncio, os
+   from gateway.platforms.weixin import send_weixin_direct
+
+   async def main():
+       result = await send_weixin_direct(
+           extra={},
+           token=os.getenv('WEIXIN_TOKEN'),
+           chat_id='o9cq80yahikyqhyMcAL7NrUzCwlI@im.wechat',
+           message='ADC 定时生图结果',
+           media_files=[('/tmp/adc-ai-gen-result.jpg', False)],
+       )
+       print(result)
+
+   asyncio.run(main())
+   ```
+   - 实跑验证过：上述方式会返回 `success=True`、`platform='weixin'`，且通常 `context_token_used=True`。
+   - 若需要发图给当前会话，这种方式比只在最终回复里输出 `MEDIA:` 更可靠。
+
 ## 推荐流程
 1. 打开登录页
 2. 输入账号密码并登录
