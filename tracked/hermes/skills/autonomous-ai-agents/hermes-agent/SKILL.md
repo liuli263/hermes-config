@@ -707,6 +707,36 @@ hermes config set auxiliary.vision.provider <your_provider>
 hermes config set auxiliary.vision.model <model_name>
 ```
 
+### Gateway media send fails because `MEDIA:` matched placeholder examples
+If a platform adapter (for example Weixin) fails while trying to send a media file and the "path" looks like a literal placeholder such as `<path>` or `<screenshot_path>`, do **not** start by debugging only the platform-specific sender.
+
+Root-cause pattern found in a real Hermes investigation:
+- `gateway/run.py` scans tool / history content for `MEDIA:` tags using permissive regex like `MEDIA:(\S+)`
+- tool descriptions, docs, or examples may contain literal samples such as `MEDIA:<path>` or `MEDIA:<screenshot_path>`
+- those placeholder strings can be promoted into the media-send pipeline as if they were real local files
+- platform adapters like Weixin then fail downstream when they try to send that non-path value
+
+Recommended debugging sequence:
+1. Reproduce / inspect the exact bad media value in logs.
+2. Trace the full path through:
+   - `gateway/run.py` (history/tool-result MEDIA harvesting)
+   - `gateway/platforms/base.py` (`BasePlatformAdapter.extract_media()`)
+   - the platform adapter send method (for example `gateway/platforms/weixin.py`)
+3. Inspect tool descriptions or docs for literal `MEDIA:<...>` examples, not just runtime send code.
+4. Add a regression test before fixing:
+   - `tests/gateway/test_media_extraction.py`
+   - `tests/gateway/test_platform_base.py`
+5. Apply a minimal shared fix instead of a platform-only patch:
+   - normalize MEDIA payloads
+   - reject placeholder-shaped values like `^<[^<>\n]+>$`
+   - still strip invalid `MEDIA:` tags from rendered text so placeholders do not leak into final replies
+6. Run focused gateway tests first, then the relevant file-level suite.
+
+Why this matters:
+- the bug is shared across platforms, not unique to Weixin
+- fixing only the platform sender leaves Telegram / Email / others vulnerable to the same placeholder-provenance issue
+- the real source may be documentation/examples, so code-only tracing is sometimes insufficient
+
 ---
 
 ## Where to Find Things
