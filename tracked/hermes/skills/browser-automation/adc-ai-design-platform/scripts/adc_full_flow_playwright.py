@@ -89,8 +89,7 @@ def wait_for_generation(page, timeout_sec: int = 300) -> str:
         img_url = get_result_image_url(page)
         if '下载图片' in body and img_url:
             return img_url
-        time.sleep(5)
-        page.reload(wait_until='networkidle')
+        page.wait_for_timeout(5000)
     raise TimeoutError('等待 ADC 出图超时')
 
 
@@ -108,8 +107,8 @@ def main() -> int:
         page = browser.new_page()
         page.goto(LOGIN_URL, wait_until='networkidle')
 
-        page.get_by_placeholder('请输入手机号').fill(args.username)
-        page.locator('input[type="password"]').fill(args.password)
+        page.get_by_placeholder('输入账号').fill(args.username)
+        page.get_by_placeholder('输入密码').fill(args.password)
         page.get_by_role('button', name='登录').click()
 
         page.wait_for_timeout(3000)
