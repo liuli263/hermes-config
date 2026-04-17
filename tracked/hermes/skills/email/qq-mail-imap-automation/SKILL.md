@@ -48,6 +48,61 @@ set -a && source ~/.hermes/.env && set +a && python3 your_mail_script.py
 
 如果脚本报 `EMAIL_PASSWORD not set`，先不要误判为授权码失效；先确认是不是**当前 shell 没有加载 `.env`**。
 
+### 0.1 发送邮件时的兜底顺序：先测 CLI，再直接走 Python SMTP
+实测中，Hermes 环境里可能**没有安装 `himalaya`**，但 `.env` 里已经有可用的 QQ SMTP 凭据。此时不要停在“工具缺失”，而应直接切换到 Python `smtplib` 发送。
+
+推荐顺序：
+1. 检查 `himalaya --version` / `himalaya account list`
+2. 若 `himalaya` 不存在，显式加载 `~/.hermes/.env`
+3. 检查以下变量是否存在：
+   - `EMAIL_ADDRESS`
+   - `EMAIL_PASSWORD`
+   - `EMAIL_SMTP_HOST`
+   - `EMAIL_SMTP_PORT`（可缺省，QQ 常用 465）
+4. 先做 SMTP 连通性握手，再真正发送
+5. 成功后再向用户确认“已发送”
+
+最小验证脚本：
+
+```bash
+set -a && source ~/.hermes/.env && set +a && python3 - <<'PY'
+import os, smtplib
+host=os.getenv('EMAIL_SMTP_HOST', 'smtp.qq.com')
+port=int(os.getenv('EMAIL_SMTP_PORT', '465'))
+if port == 465:
+    s = smtplib.SMTP_SSL(host, port, timeout=20)
+else:
+    s = smtplib.SMTP(host, port, timeout=20)
+    s.ehlo()
+    s.starttls()
+    s.ehlo()
+print('connected', s.noop())
+s.quit()
+PY
+```
+
+最小发送脚本：
+
+```bash
+set -a && source ~/.hermes/.env && set +a && python3 - <<'PY'
+import os, smtplib
+from email.mime.text import MIMEText
+sender=os.environ['EMAIL_ADDRESS']
+password=os.environ['EMAIL_PASSWORD']
+recipients=['target@example.com']
+msg=MIMEText('Hello from Hermes', 'plain', 'utf-8')
+msg['From']=sender
+msg['To']=', '.join(recipients)
+msg['Subject']='Test message'
+with smtplib.SMTP_SSL(os.getenv('EMAIL_SMTP_HOST', 'smtp.qq.com'), int(os.getenv('EMAIL_SMTP_PORT', '465')), timeout=30) as s:
+    s.login(sender, password)
+    s.sendmail(sender, recipients, msg.as_string())
+print('SENT')
+PY
+```
+
+经验结论：在当前 Hermes 环境里，`himalaya` 可能缺失，但 QQ SMTP 直连可用；因此“缺 CLI 不等于不能发邮件”。
+
 ### 1. QQ IMAP 上优先用 `SELECT`，不要依赖 `EXAMINE`
 实践中 QQ IMAP 对 `EXAMINE` 可能不稳定。探测和后续操作都优先：
 
