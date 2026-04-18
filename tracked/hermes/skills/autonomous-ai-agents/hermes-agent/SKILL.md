@@ -387,7 +387,7 @@ Edit with `hermes config edit` or `hermes config set section.key value`.
 | Section | Key options |
 |---------|-------------|
 | `model` | `default`, `provider`, `base_url`, `api_key`, `context_length` |
-| `agent` | `max_turns` (90), `tool_use_enforcement` |
+| `agent` | `max_turns` (90), `tool_use_enforcement`, `gateway_timeout`, `gateway_timeout_warning`, `gateway_notify_interval`, `restart_drain_timeout` |
 | `terminal` | `backend` (local/docker/ssh/modal), `cwd`, `timeout` (180) |
 | `compression` | `enabled`, `threshold` (0.50), `target_ratio` (0.20) |
 | `display` | `skin`, `tool_progress`, `show_reasoning`, `show_cost` |
@@ -613,6 +613,32 @@ Check logs first:
 ```bash
 grep -i "failed to send\|error" ~/.hermes/logs/gateway.log | tail -20
 ```
+
+#### Gateway timeout semantics
+When a user asks to "turn off agent timeout" in Hermes, verify both config.yaml and any environment-variable overrides before changing anything.
+
+Important semantics confirmed in the current code:
+- `agent.gateway_timeout: 0` means **unlimited inactivity timeout** for gateway agent runs.
+- `agent.gateway_timeout_warning: 0` means **disable the staged inactivity warning**.
+- `agent.gateway_notify_interval: 0` means **disable periodic still-working notifications**.
+- `agent.restart_drain_timeout: 0` does **not** mean unlimited; it means **no graceful drain** on gateway restart, so running agents are interrupted immediately.
+- `browser.inactivity_timeout` and `terminal.lifetime_seconds` are separate cleanup timers and are **not** the main gateway agent timeout.
+
+Verification workflow:
+1. Inspect `~/.hermes/config.yaml` for the `agent` section.
+2. Check env overrides because gateway bridges config into env vars and explicit env vars take precedence:
+   - `HERMES_AGENT_TIMEOUT`
+   - `HERMES_AGENT_TIMEOUT_WARNING`
+   - `HERMES_AGENT_NOTIFY_INTERVAL`
+   - `HERMES_RESTART_DRAIN_TIMEOUT`
+   - plus related non-agent timers like `BROWSER_INACTIVITY_TIMEOUT`, `TERMINAL_LIFETIME_SECONDS`
+3. If the request is only about agent timeout, avoid changing browser/terminal cleanup settings unless explicitly requested.
+4. When reporting back, separate these concepts clearly:
+   - main agent inactivity timeout
+   - warning threshold
+   - periodic progress notifications
+   - restart drain behavior
+   - browser / terminal idle cleanup
 
 Common gateway problems:
 - **Gateway dies on SSH logout**: Enable linger: `sudo loginctl enable-linger $USER`
