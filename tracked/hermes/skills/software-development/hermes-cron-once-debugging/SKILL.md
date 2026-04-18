@@ -1,7 +1,7 @@
 ---
 name: hermes-cron-once-debugging
 description: Diagnose Hermes one-shot cron jobs that appear not to run, especially when last_run_at stays unset or jobs disappear from list after execution.
-version: 1.0.0
+version: 1.1.0
 author: Hermes Agent
 license: MIT
 ---
@@ -16,6 +16,8 @@ Use this when a user reports that a one-shot cron job "did not run", `last_run_a
 2. For one-shot jobs, `cronjob list` is **not a reliable success signal**. A successful once job may be removed from `jobs.json` immediately after execution.
 3. Stronger proof comes from files under `~/.hermes/cron/output/<job_id>/`.
 4. After the observability fix, each run should also leave `latest_run.json` beside the markdown output file.
+5. For cron delivery debugging, `deliver=origin` may fail to resolve a target in autonomous cron runs even when an interactive chat exists. If `latest_run.json` shows `no delivery target resolved for deliver=origin`, switch the job to an explicit target like `weixin:<chat_id>` and retest.
+6. A successful explicit Weixin delivery may still record `message_id: null`; treat `delivery_error: null` plus correct `platform/chat_id` in `delivery_metadata` as the stronger success signal.
 
 ## Fast triage procedure
 
@@ -39,8 +41,18 @@ Use this when a user reports that a one-shot cron job "did not run", `last_run_a
    - `delivery_error` captures send failures.
    - `delivery_metadata` may contain platform/chat/message identifiers.
    - `error` captures execution failures even if the job was removed from `jobs.json`.
+   - If `deliver` was `origin` and `delivery_error` says no target was resolved, the problem is target resolution, not scheduler execution.
 
-5. **Verify both failure and success paths**
+5. **For Weixin delivery, test explicit target vs origin**
+   - Create a tiny one-shot self-test first.
+   - If `deliver=origin` fails, re-run with an explicit target like `weixin:<chat_id>`.
+   - Confirm success from `latest_run.json` using:
+     - `delivery_error: null`
+     - `delivery_metadata.platform == "weixin"`
+     - `delivery_metadata.chat_id == <expected chat id>`
+   - Do not require `message_id` to be non-null before treating the send as successful.
+
+6. **Verify both failure and success paths**
    - In an isolated `HERMES_HOME`, run one self-test without provider config to verify failure still leaves `latest_run.json`.
    - Then copy real `config.yaml` and `.env` into an isolated `HERMES_HOME` and verify a successful one-shot run also leaves both files.
 
