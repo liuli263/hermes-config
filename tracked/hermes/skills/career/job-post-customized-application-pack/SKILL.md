@@ -33,23 +33,29 @@ metadata:
 ## 执行步骤
 1. 先用 `web` / 搜索工具检索企业资料，至少覆盖：
    - 官网 / 产品 / 主营业务
+   - LinkedIn 公司页 / careers 页面
    - Glassdoor / Indeed / Reddit / 新闻等员工评价或舆情
    - 薪酬、福利、团队文化、稳定性（能找到就写）
-2. 结构化整理职位信息：
+   - 优先按 `references/company-research-checklist.md` 的字段采集，并保留来源链接与可信度标注。
+2. 若用户有明确地理筛选条件（例如通勤半小时内），必须额外查公司 office / locations 页面，先定位办公地址，再判断是否值得继续投递；不要只看 JD 文本。
+3. 若用户特别关心远程、福利、年假、语言环境、签证支持等，必须将这些项单独列为“已确认 / 未确认 / 员工提及但未官方确认”，不能混成泛泛文化描述。
+4. 结构化整理职位信息：
    - 岗位职责
    - 硬技能 / 软技能
    - 脑洞强度 / 沟通强度 / owner 意识 / 管理跨度
    - 语言要求
    - 地域、签证、远程要求
-3. 读取脱敏简历 JSON 与求职要求 JSON，先做匹配分析。
-4. 整理好研究结论后，运行 `scripts/customize_application.py` 生成文档。
-5. 文档生成后，运行脚本内建校验，确认占位敏感信息（如 `Alex Martin`）都已经替换为真实信息；若未替换，立即修复。
-6. 使用 SMTP 将所有 `.docx` 附件发到 `50803169@qq.com`。
-7. 在微信回报：
+4. 读取脱敏简历 JSON 与求职要求 JSON，先做匹配分析。
+5. 整理好研究结论后，运行 `scripts/customize_application.py` 生成文档。
+6. 文档生成后，运行脚本内建校验，确认占位敏感信息（如 `Alex Martin`）都已经替换为真实信息；若未替换，立即修复。
+7. 若环境里没有 `python-docx`，可直接生成最小可用的 OOXML `.docx`（zip 包含 `[Content_Types].xml`、`_rels/.rels`、`word/document.xml`、`docProps/*`）；不要因为缺少库就停在说明阶段。
+8. 使用 SMTP 将所有 `.docx` 附件发到 `50803169@qq.com`。
+9. 在微信回报：
    - 职位匹配度评分
    - 已生成文件数量
    - 归档目录
    - 邮件发送结果
+10. 公司调研报告优先按 `templates/company_research_report_template.md` 的结构输出，至少包含：一页摘要、详细报告、表格汇总、来源清单。
 
 ## 产物目录规范
 默认根目录：
@@ -69,6 +75,7 @@ metadata:
 - `interview_pack_zh.docx`
 - `interview_pack_en.docx`
 - `interview_pack_fr.docx`
+- `company_research_report.md`
 - `manifest.json`
 - `job_posting.txt`
 - `company_research.txt`
