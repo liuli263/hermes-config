@@ -15,3 +15,5 @@ User prefers replies in Chinese.
 用户要求不要使用项目内置的 CodeIndex 副本；后续项目统一使用中央脚本 /home/liuli/projects/CodeIndex/CreateIndex.py 生成项目根 codeindex/。
 §
 用户希望把可复用的网站操作能力（如 adc.acsbim.com 流程）封装成 Hermes 技能，并尽量附带可落地的 Python 程序/脚本模板，方便后续直接调用。
+§
+用户希望排查/修复过程中不要反复确认，默认持续推进，并每隔5分钟主动汇报一次进度。
