@@ -33,7 +33,9 @@ In particular, check whether Weixin is splitting a short multiline reply into mu
 - `gateway/platforms/weixin.py`
 - `tests/gateway/test_weixin.py`
 - sometimes `gateway/platforms/base.py`
-- sometimes `gateway/run.py`
+- `gateway/run.py`
+- `gateway/display_config.py`
+- `tests/gateway/test_display_config.py`
 
 ## Investigation workflow
 
@@ -79,13 +81,31 @@ In particular, check whether Weixin is splitting a short multiline reply into mu
      - `hermes gateway status`
    - If status still shows draining, note that code is fixed but runtime cutover may still be pending.
 
-## Proven root cause pattern
+## Proven root cause patterns
+
+### Pattern A: Weixin-side chunking of short multiline Chinese replies
 
 A confirmed failure mode in this repo was:
 - `WeixinAdapter.send()` split one formatted reply into `chunks`
 - `_split_text_for_weixin_delivery(...)` split even when the message was not over the max length
 - short Chinese multiline replies were treated as "chatty" and broken into multiple bubbles
 - users perceived this as missing/truncated text
+
+### Pattern B: Global streaming incorrectly enabling fallback sends on non-editable Weixin
+
+Another confirmed failure mode was:
+- `WeixinAdapter` does **not** support message editing (`SUPPORTS_MESSAGE_EDITING = False`)
+- but `gateway/run.py` could still enable streaming when global `display.streaming = true`
+- that forced Weixin onto the stream-consumer fallback send path instead of stable final-only delivery
+- the result could look like "last few Chinese characters are missing" or the tail of the reply never fully arriving
+- this contradicted the code comments/intent that Weixin should default to final-only unless explicitly overridden
+
+Debug this by checking together:
+- `gateway/run.py`
+- `gateway/display_config.py`
+- actual runtime config in `~/.hermes/config.yaml`, especially:
+  - `display.streaming`
+  - `display.platforms.weixin.streaming`
 
 ## Cron auto-delivery observability lesson
 
@@ -112,7 +132,9 @@ Do not confuse:
 - **session mirroring**, and
 - **user-visible appearance in the Weixin client**.
 
-## Proven minimal fix
+## Proven minimal fixes
+
+### Fix for chunking-default bug
 
 In compact/default mode, when `len(content) <= max_length`, return:
 
@@ -123,6 +145,23 @@ In compact/default mode, when `len(content) <= max_length`, return:
 instead of auto-splitting based on short-chat heuristics.
 
 Keep explicit legacy split behavior behind the config/flag path rather than the default path.
+
+### Fix for non-editable-platform streaming bug
+
+Introduce a shared resolver for streaming enablement (for example in `gateway/display_config.py`) with this precedence:
+
+1. explicit per-platform override: `display.platforms.<platform>.streaming`
+2. if the adapter does **not** support editing, default to `False`
+3. otherwise follow global streaming (`display.streaming` / `StreamingConfig`)
+
+In `gateway/run.py`, compute effective streaming with adapter capability awareness instead of blindly inheriting the global toggle.
+
+Safe runtime mitigation before/while patching code:
+
+```bash
+hermes config set display.platforms.weixin.streaming false
+hermes gateway restart
+```
 
 ## Pitfalls
 
@@ -136,6 +175,8 @@ Keep explicit legacy split behavior behind the config/flag path rather than the 
 - [ ] A Chinese multiline regression test exists
 - [ ] The test fails before the patch
 - [ ] The patch only changes Weixin chunking behavior
+- [ ] If streaming/final-only behavior is involved, there is a regression test for non-editable platforms vs global streaming
 - [ ] `tests/gateway/test_weixin.py` passes fully
+- [ ] `tests/gateway/test_display_config.py` passes when touching streaming resolution
 - [ ] Gateway restart/status has been checked
-- [ ] Final summary explains that the issue was chunk splitting, not necessarily byte-level loss
+- [ ] Final summary explains whether the issue came from chunk splitting, global streaming resolution, or both
