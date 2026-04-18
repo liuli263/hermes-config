@@ -20,7 +20,7 @@ metadata:
 5. 生成面试与求职材料包（中 / 英 / 法）
 6. 检查所有附件中的占位敏感信息是否已恢复为真实信息
 7. 将结果归档到 `resume/dept/职位_公司_时间/`
-8. 通过邮件发送全部 Word 附件到 `50803169@qq.com`
+8. 通过邮件发送全部生成附件到 `50803169@qq.com`，至少包括：全部 `.docx`、`company_research_report.md`、`manifest.json`、`job_posting.txt`、`company_research.txt`
 9. 完成后在微信里汇报总结
 
 ## 依赖输入
@@ -107,6 +107,7 @@ python3 scripts/customize_application.py \
 ## 邮件要求
 - 收件人：`50803169@qq.com`
 - 标题格式：`职位_公司_时间_AI定制化简历任务`
+- 附件必须至少包含：全部 `.docx`、`company_research_report.md`、`manifest.json`、`job_posting.txt`、`company_research.txt`
 - 使用本机 SMTP 环境变量发送
 - 若 SMTP 不可用，必须在输出 JSON 里明确失败原因
 

@@ -147,11 +147,20 @@ def maybe_send_email(subject: str, body: str, files: list[Path], to_addr: str) -
     msg['To'] = to_addr
     msg.set_content(body)
     for f in files:
-        msg.add_attachment(f.read_bytes(), maintype='application', subtype='vnd.openxmlformats-officedocument.wordprocessingml.document', filename=f.name)
+        suffix = f.suffix.lower()
+        if suffix == '.docx':
+            maintype, subtype = 'application', 'vnd.openxmlformats-officedocument.wordprocessingml.document'
+        elif suffix == '.md':
+            maintype, subtype = 'text', 'markdown'
+        elif suffix == '.json':
+            maintype, subtype = 'application', 'json'
+        else:
+            maintype, subtype = 'text', 'plain'
+        msg.add_attachment(f.read_bytes(), maintype=maintype, subtype=subtype, filename=f.name)
     with smtplib.SMTP_SSL(host, port, timeout=30) as smtp:
         smtp.login(user, password)
         smtp.send_message(msg)
-    return True, 'sent'
+    return True, f'sent {len(files)} attachments'
 
 
 def main() -> None:
@@ -224,12 +233,21 @@ def main() -> None:
 
     (task_dir / 'job_posting.txt').write_text(job_text, encoding='utf-8')
     (task_dir / 'company_research.txt').write_text(research_text, encoding='utf-8')
+    company_report = f'''# 公司调研报告\n\n- 公司：{args.company}\n- 职位：{args.position}\n- 匹配评分：{score}\n- 建议：{analysis['recommendation']}\n\n## 职位摘要\n{job_text[:2000]}\n\n## 公司/研究摘要\n{research_text[:2000] or '未提供额外研究文本。'}\n\n## 匹配明细\n```json\n{analysis_text}\n```\n'''
+    (task_dir / 'company_research_report.md').write_text(company_report, encoding='utf-8')
+    attachment_files = [Path(p) for p in generated] + [
+        task_dir / 'company_research_report.md',
+        task_dir / 'manifest.json',
+        task_dir / 'job_posting.txt',
+        task_dir / 'company_research.txt',
+    ]
     manifest = {
         'position': args.position,
         'company': args.company,
         'created_at': now.isoformat(timespec='seconds'),
         'score': score,
         'generated_files': generated,
+        'attachment_files': [str(p) for p in attachment_files],
         'used_requirements_json': str(req_path),
         'used_sanitized_json': str(san_path),
         'used_real_json': str(real_path),
@@ -241,7 +259,8 @@ def main() -> None:
     email_sent = False
     email_status = 'skipped'
     if args.send_email:
-        email_sent, email_status = maybe_send_email(subject, f'{args.company} / {args.position} 求职材料已生成。', [Path(p) for p in generated], '50803169@qq.com')
+        email_body = f'{args.company} / {args.position} 求职材料已生成。\n\n本次邮件包含：\n- 三语职位分析\n- 三语简历\n- 三语面试材料\n- 公司调研报告\n- manifest 与原始输入文本\n\n归档目录：{task_dir}'
+        email_sent, email_status = maybe_send_email(subject, email_body, attachment_files, '50803169@qq.com')
 
     print(json.dumps({
         'resume_root': str(root),
