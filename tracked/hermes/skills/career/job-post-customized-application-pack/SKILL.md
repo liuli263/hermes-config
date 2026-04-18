@@ -31,6 +31,7 @@ metadata:
 - `resume/request/current_requirements.json`（职位匹配标准）
 
 ## 执行步骤
+0. 只要用户直接贴出职位描述 / JD / Indeed 推送内容，即默认进入本技能流程；不要仅做口头岗位评估后停止。即使用户没有明确说“生成申请包”，也应至少完成：职位文本落盘、公司调研、读取简历 JSON、运行 `scripts/customize_application.py` 生成归档产物，再在回复里总结是否值得投递。
 1. 先用 `web` / 搜索工具检索企业资料，至少覆盖：
    - 官网 / 产品 / 主营业务
    - LinkedIn 公司页 / careers 页面

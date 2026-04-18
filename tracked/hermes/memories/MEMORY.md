@@ -15,3 +15,5 @@ Cron one-shot observability in hermes-agent: commit 46c19957 added cron.jobs.sav
 本环境 Weixin cron deliver=origin 已修复并验证；一次性 cron 的执行证明优先看 ~/.hermes/cron/output/<job_id>/latest_run.json，而非 cronjob list。
 §
 User wants a daily 03:00 China-time Hermes cache cleanup cron that removes files older than 24 hours from ~/.hermes/cache/documents and ~/.hermes/cache/screenshots only.
+§
+The job-post-customized-application-pack script currently fails email sending here unless EMAIL_SMTP_HOST/PORT/USER/PASSWORD are exported in the process environment; despite QQ mail working elsewhere, those env vars were missing during customize_application.py runs on 2026-04-19.
