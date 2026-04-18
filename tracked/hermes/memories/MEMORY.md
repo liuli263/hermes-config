@@ -1,8 +1,8 @@
-This environment has Claude Code installed and callable as `claude` from /home/liuli/.hermes/node/bin/claude; auth status uses ANTHROPIC_AUTH_TOKEN with base URL https://yxai.chat.
+本环境可用 claude/codex/gemini 三个 CLI agent；claude 路径 /home/liuli/.hermes/node/bin/claude，认证走 ANTHROPIC_AUTH_TOKEN + https://yxai.chat。
 §
-This environment also has Codex CLI and Gemini CLI installed and working: `codex` at /home/liuli/.hermes/node/bin/codex (codex-cli 0.121.0, provider yxai) and `gemini` at /home/liuli/.hermes/node/bin/gemini (0.38.1).
+codex=/home/liuli/.hermes/node/bin/codex（0.121.0, provider yxai），gemini=/home/liuli/.hermes/node/bin/gemini（0.38.1）。
 §
-CodeIndex repo is cloned locally at /home/liuli/projects/CodeIndex and should be used as the default prompt/index-first workflow reference when a project has a codeindex/ directory.
+中央 CodeIndex 仓库在 /home/liuli/projects/CodeIndex；项目若需索引，默认参考该仓库与 index-first 工作流。
 §
 This Hermes environment has QQ email configured as 50803169@qq.com, and direct SMTP sending works after updating the QQ mailbox authorization code on 2026-04-16.
 §
@@ -12,6 +12,6 @@ For Hermes one-shot cron debugging: do not treat `cronjob list` as authoritative
 §
 Cron one-shot observability in hermes-agent: commit 46c19957 added cron.jobs.save_job_run_record() and scheduler writes ~/.hermes/cron/output/<job_id>/latest_run.json with success/output_file/deliver/delivery_error/delivery_metadata/error so once jobs can be verified even after removal from jobs.json.
 §
-In this Hermes setup, Weixin cron deliver=origin is now fixed and end-to-end validated; latest_run.json can show success=true with delivery_error=null and correct weixin chat_id. Remaining cron concern is scheduler tick delay, not origin resolution.
+本环境 Weixin cron deliver=origin 已修复并验证；一次性 cron 的执行证明优先看 ~/.hermes/cron/output/<job_id>/latest_run.json，而非 cronjob list。
 §
 User wants a daily 03:00 China-time Hermes cache cleanup cron that removes files older than 24 hours from ~/.hermes/cache/documents and ~/.hermes/cache/screenshots only.
