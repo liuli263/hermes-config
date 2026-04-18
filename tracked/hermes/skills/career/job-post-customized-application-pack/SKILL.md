@@ -50,8 +50,9 @@ metadata:
 5. 整理好研究结论后，运行 `scripts/customize_application.py` 生成文档。
 6. 文档生成后，运行脚本内建校验，确认占位敏感信息（如 `Alex Martin`）都已经替换为真实信息；若未替换，立即修复。
 7. 若环境里没有 `python-docx`，可直接生成最小可用的 OOXML `.docx`（zip 包含 `[Content_Types].xml`、`_rels/.rels`、`word/document.xml`、`docProps/*`）；不要因为缺少库就停在说明阶段。
-8. 使用 SMTP 将所有 `.docx` 附件发到 `50803169@qq.com`。
-9. 在微信回报：
+8. 发送邮件时优先用脚本内建 SMTP；若 `EMAIL_SMTP_*` 缺失，不要停止，先自动加载 `~/.hermes/.env`，并允许回退使用 `EMAIL_ADDRESS` + `EMAIL_PASSWORD` + `EMAIL_SMTP_HOST/PORT` 直连 QQ SMTP。若 `himalaya` 不存在也不要卡住，直接用 Python `smtplib` 发送全部附件。
+9. 使用 SMTP 将所有 `.docx` 附件发到 `50803169@qq.com`，并附上 `company_research_report.md`、`manifest.json`、`job_posting.txt`、`company_research.txt`。
+10. 在微信回报：
    - 职位匹配度评分
    - 已生成文件数量
    - 归档目录

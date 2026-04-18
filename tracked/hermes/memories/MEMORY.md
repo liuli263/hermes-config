@@ -16,4 +16,4 @@ Cron one-shot observability in hermes-agent: commit 46c19957 added cron.jobs.sav
 §
 User wants a daily 03:00 China-time Hermes cache cleanup cron that removes files older than 24 hours from ~/.hermes/cache/documents and ~/.hermes/cache/screenshots only.
 §
-The job-post-customized-application-pack script currently fails email sending here unless EMAIL_SMTP_HOST/PORT/USER/PASSWORD are exported in the process environment; despite QQ mail working elsewhere, those env vars were missing during customize_application.py runs on 2026-04-19.
+job-post-customized-application-pack 已修复邮件发送兜底：脚本会读取本地邮件配置，并在缺少专用 SMTP 用户/密码变量时回退到通用邮箱账号变量，因此当前环境下可成功发送 QQ SMTP 邮件。

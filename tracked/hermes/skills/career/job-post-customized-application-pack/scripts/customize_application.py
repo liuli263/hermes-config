@@ -9,6 +9,21 @@ from pathlib import Path
 from xml.sax.saxutils import escape
 import smtplib
 from email.message import EmailMessage
+def load_local_env() -> None:
+    env_path = Path.home() / '.hermes' / '.env'
+    if not env_path.exists():
+        return
+    for raw in env_path.read_text(encoding='utf-8').splitlines():
+        line = raw.strip()
+        if not line or line.startswith('#') or '=' not in line:
+            continue
+        key, value = line.split('=', 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        os.environ.setdefault(key, value)
+
+
+load_local_env()
 
 FAKE_MARKERS = [
     'Alex Martin',
@@ -88,6 +103,57 @@ def score_job(req: dict, profile: dict, job_text: str) -> tuple[int, dict]:
     return score, details
 
 
+def bullets(items: list[str], prefix: str = '- ') -> str:
+    out = []
+    for item in items:
+        s = str(item).strip()
+        if s:
+            out.append(f'{prefix}{s}')
+    return '\n'.join(out)
+
+
+def compact_skills(profile: dict, limit: int = 12) -> list[str]:
+    return [s for s in profile.get('skills', []) if s][:limit]
+
+
+def format_experience_blocks(profile: dict) -> tuple[str, str, str]:
+    exps = profile.get('work_experience', []) or []
+    zh_blocks, en_blocks, fr_blocks = [], [], []
+    for exp in exps:
+        period = exp.get('period', '')
+        title = exp.get('title', '')
+        company = exp.get('company', '')
+        details = [d for d in exp.get('details', []) if d][:6]
+        header = f'{period} | {title} | {company}'.strip(' |')
+        zh_blocks.append(header + ('\n' + bullets(details, '• ') if details else ''))
+        en_blocks.append(header + ('\n' + bullets(details, '- ') if details else ''))
+        fr_blocks.append(header + ('\n' + bullets(details, '• ') if details else ''))
+    return '\n\n'.join(zh_blocks), '\n\n'.join(en_blocks), '\n\n'.join(fr_blocks)
+
+
+def job_focus_points(job_text: str, detail_matches: dict) -> list[str]:
+    focus = []
+    checks = [
+        ('API', 'API / microservices validation'),
+        ('SQL', 'SQL and data validation'),
+        ('Jenkins', 'CI/CD collaboration'),
+        ('GitLab', 'CI/CD collaboration'),
+        ('Kafka', 'event-driven / message flow validation'),
+        ('Postman', 'API testing tooling'),
+        ('Swagger', 'REST contract validation'),
+        ('Jira', 'defect lifecycle management'),
+        ('Agile', 'Agile / Scrum delivery'),
+    ]
+    lower = job_text.lower()
+    for token, label in checks:
+        if token.lower() in lower and label not in focus:
+            focus.append(label)
+    for item in detail_matches.get('must_have', []):
+        if item not in focus:
+            focus.append(item)
+    return focus[:8]
+
+
 def make_paragraphs(text: str) -> str:
     paras = []
     for raw in text.split('\n'):
@@ -135,10 +201,10 @@ def validate_no_fake_markers(task_dir: Path) -> dict:
 
 
 def maybe_send_email(subject: str, body: str, files: list[Path], to_addr: str) -> tuple[bool, str]:
-    host = os.environ.get('EMAIL_SMTP_HOST')
+    host = os.environ.get('EMAIL_SMTP_HOST', 'smtp.qq.com')
     port = int(os.environ.get('EMAIL_SMTP_PORT', '465'))
-    user = os.environ.get('EMAIL_SMTP_USER')
-    password = os.environ.get('EMAIL_SMTP_PASSWORD')
+    user = os.environ.get('EMAIL_SMTP_USER') or os.environ.get('EMAIL_ADDRESS')
+    password = os.environ.get('EMAIL_SMTP_PASSWORD') or os.environ.get('EMAIL_PASSWORD')
     if not all([host, user, password]):
         return False, 'missing SMTP environment variables'
     msg = EmailMessage()
@@ -202,13 +268,23 @@ def main() -> None:
         'research_preview': research_text[:800],
     }
 
-    zh_resume = f"姓名：{real.get('name','')}\n邮箱：{real.get('email','')}\n电话：{real.get('phone','')}\n地址：{real.get('address','')}\n目标岗位：{args.position}\n匹配技能：{', '.join(details.get('skill_hits', [])) or '待补充'}\n亮点：结合{args.company}岗位需求，突出数据分析、跨语言沟通与业务落地能力。"
-    en_resume = f"Name: {real.get('name','')}\nEmail: {real.get('email','')}\nPhone: {real.get('phone','')}\nAddress: {real.get('address','')}\nTarget Role: {args.position}\nMatched Skills: {', '.join(details.get('skill_hits', [])) or 'TBD'}\nSummary: Tailored for {args.company} with emphasis on analytics, AI operations, and multilingual communication."
-    fr_resume = f"Nom : {real.get('name','')}\nEmail : {real.get('email','')}\nTéléphone : {real.get('phone','')}\nAdresse : {real.get('address','')}\nPoste ciblé : {args.position}\nCompétences pertinentes : {', '.join(details.get('skill_hits', [])) or 'à compléter'}\nRésumé : Candidature adaptée à {args.company}, orientée analyse de données et coordination produit IA."
+    skill_hits = details.get('skill_hits', []) or compact_skills(real)
+    skills_text = ', '.join(skill_hits) if skill_hits else '待补充'
+    summary_text = real.get('summary', '') or san.get('summary', '') or '待补充职业概述'
+    languages = ', '.join(real.get('languages', []) or san.get('languages', []) or ['French'])
+    zh_exp, en_exp, fr_exp = format_experience_blocks(real)
+    focus_points = job_focus_points(job_text, details)
+    focus_zh = bullets(focus_points, '• ') or '• 岗位核心职责'
+    focus_en = bullets(focus_points, '- ') or '- Core job responsibilities'
+    focus_fr = bullets(focus_points, '• ') or '• Responsabilités clés'
 
-    interview_zh = f"面试建议\n- 匹配度评分：{score}\n- 重点准备：{', '.join(details.get('must_have', []) or ['岗位核心职责'])}\n- 常见问题：为什么适合{args.company}？如何用数据驱动业务？\n- Cover Letter 要点：强调与岗位JD的直接匹配。"
-    interview_en = f"Interview Tips\n- Match score: {score}\n- Focus areas: {', '.join(details.get('must_have', []) or ['core responsibilities'])}\n- Questions: Why {args.company}? How do you drive impact with data?\n- Cover letter: emphasize direct alignment with the JD."
-    interview_fr = f"Conseils d'entretien\n- Score de compatibilité : {score}\n- Axes de préparation : {', '.join(details.get('must_have', []) or ['responsabilités clés'])}\n- Questions : Pourquoi {args.company} ? Comment créer de l'impact avec les données ?\n- Lettre de motivation : montrer l'adéquation directe avec l'offre."
+    zh_resume = f"姓名：{real.get('name','')}\n邮箱：{real.get('email','')}\n电话：{real.get('phone','')}\n地址：{real.get('address','')}\n目标岗位：{args.position}\n\n职业概述：\n{summary_text}\n\n核心技能：\n{skills_text}\n\n语言：{languages}\n\n精选工作经历：\n{zh_exp or '待补充'}\n\n岗位匹配重点：\n{focus_zh}"
+    en_resume = f"Name: {real.get('name','')}\nEmail: {real.get('email','')}\nPhone: {real.get('phone','')}\nAddress: {real.get('address','')}\nTarget Role: {args.position}\n\nProfessional Summary:\n{summary_text}\n\nCore Skills:\n{', '.join(skill_hits) if skill_hits else 'TBD'}\n\nLanguages: {languages}\n\nSelected Experience:\n{en_exp or 'TBD'}\n\nRole Alignment:\n{focus_en}"
+    fr_resume = f"Nom : {real.get('name','')}\nEmail : {real.get('email','')}\nTéléphone : {real.get('phone','')}\nAdresse : {real.get('address','')}\nPoste ciblé : {args.position}\n\nProfil professionnel :\n{summary_text}\n\nCompétences clés :\n{', '.join(skill_hits) if skill_hits else 'à compléter'}\n\nLangues : {languages}\n\nExpériences sélectionnées :\n{fr_exp or 'à compléter'}\n\nPoints d'adéquation avec le poste :\n{focus_fr}"
+
+    interview_zh = f"面试建议\n匹配度评分：{score}\n\n优先准备主题：\n{focus_zh}\n\n可展开案例：\n{bullets(skill_hits[:6], '• ')}\n\n建议回答方向：\n• 为什么适合{args.company}：强调 API、SQL、回归/集成测试与 Jira/Jenkins 协作经验。\n• 如何支撑 UAT / 缺陷闭环：结合你过往测试环境维护、缺陷跟踪、日志分析与数据校验经历。\n• 如何逐步推进自动化：结合 Selenium、CI/CD、回归测试经验说明可落地方案。\n\n建议举例经历：\n{zh_exp or '待补充具体项目案例'}"
+    interview_en = f"Interview Tips\nMatch score: {score}\n\nPriority focus areas:\n{focus_en}\n\nExamples to prepare:\n{bullets(skill_hits[:6], '- ')}\n\nSuggested answer angles:\n- Why {args.company}: emphasize API, SQL, regression/integration testing, Jira and Jenkins collaboration.\n- UAT and defect lifecycle support: use examples from environment setup, defect tracking, log analysis, and data validation.\n- Progressive test automation: connect Selenium and CI/CD experience to practical rollout steps.\n\nExperience examples:\n{en_exp or 'Prepare concrete project stories.'}"
+    interview_fr = f"Conseils d'entretien\nScore de compatibilité : {score}\n\nAxes prioritaires :\n{focus_fr}\n\nExemples à préparer :\n{bullets(skill_hits[:6], '• ')}\n\nAngles de réponse conseillés :\n• Pourquoi {args.company} : mettre en avant l'expérience API, SQL, tests de régression/intégration, Jira et Jenkins.\n• Support UAT et cycle de vie des anomalies : s'appuyer sur l'expérience en environnements de test, analyse de logs et validation de données.\n• Automatisation progressive : relier Selenium et CI/CD à un plan de montée en maturité réaliste.\n\nExpériences à citer :\n{fr_exp or 'Préparer des exemples de projets concrets.'}"
 
     analysis_text = json.dumps(analysis, ensure_ascii=False, indent=2)
     analysis_text = restore_real_info(analysis_text, real)
