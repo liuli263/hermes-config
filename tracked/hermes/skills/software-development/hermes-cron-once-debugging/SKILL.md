@@ -25,6 +25,7 @@ Use this when a user reports that a one-shot cron job "did not run", `last_run_a
 1. **Check source first**
    - Read `cron/jobs.py`, `cron/scheduler.py`, and `tools/cronjob_tools.py`.
    - Confirm whether the suspected behavior is true in code before speculating.
+   - For `deliver=origin` failures, also inspect `gateway/run.py` for the exact agent execution path. If the gateway invokes agent/tool work via `run_in_executor(...)`, verify whether session context is propagated into that executor thread.
 
 2. **Do not trust `cronjob list` alone**
    - If a once job is missing from the list, treat that as ambiguous.
@@ -43,6 +44,7 @@ Use this when a user reports that a one-shot cron job "did not run", `last_run_a
    - `delivery_metadata` may contain platform/chat/message identifiers.
    - `error` captures execution failures even if the job was removed from `jobs.json`.
    - If `deliver` was `origin` and `delivery_error` says no target was resolved, the problem is target resolution, not scheduler execution.
+   - If the corresponding persisted job record also shows `"origin": null`, shift focus upstream to origin capture during job creation.
 
 5. **For Weixin delivery, test explicit target vs origin**
    - Create a tiny one-shot self-test first.
