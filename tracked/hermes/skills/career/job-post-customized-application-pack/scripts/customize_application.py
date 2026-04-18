@@ -223,6 +223,102 @@ def first_line(text: str) -> str:
     return text.splitlines()[0].strip() if text.strip() else ''
 
 
+def localize_title_company(title: str, company: str, lang: str) -> tuple[str, str]:
+    title_map = {
+        'Ingénieur en tests logiciels principal': {
+            'zh': '高级软件测试工程师',
+            'en': 'Senior Software Test Engineer',
+            'fr': 'Ingénieur en tests logiciels principal',
+        },
+        'Technicienne Informatique': {
+            'zh': 'IT 技术员',
+            'en': 'IT Technician',
+            'fr': 'Technicienne Informatique',
+        },
+    }
+    company_map = {
+        'Plusieurs enterprises': {
+            'zh': '多家企业项目',
+            'en': 'Multiple enterprise environments',
+            'fr': 'Plusieurs entreprises',
+        },
+        'Entreprise 1| Entreprise 2': {
+            'zh': '企业 1 / 企业 2',
+            'en': 'Company 1 / Company 2',
+            'fr': 'Entreprise 1 / Entreprise 2',
+        },
+    }
+    return title_map.get(title, {}).get(lang, title), company_map.get(company, {}).get(lang, company)
+
+
+def translate_experience_detail(text: str, lang: str) -> str:
+    if lang == 'fr':
+        return text
+    mapping = {
+        'Analyser les besoins d’affaires, les user stories et les critères d’acceptation afin de concevoir des plans et des stratégies de tests complets.': {
+            'zh': '分析业务需求、用户故事和验收标准，设计完整的测试计划与测试策略。',
+            'en': 'Analyzed business requirements, user stories, and acceptance criteria to build complete test plans and strategies.',
+        },
+        'Concevoir, exécuter et maintenir des cas de tests manuels et automatisés à l’aide de HP ALM et Selenium (Java).': {
+            'zh': '使用 HP ALM 与 Selenium（Java）设计、执行并维护手工和自动化测试用例。',
+            'en': 'Designed, executed, and maintained manual and automated test cases using HP ALM and Selenium (Java).',
+        },
+        'Développer et exécuter des tests API et HTTP afin de valider les services backend et les intégrations système.': {
+            'zh': '开发并执行 API / HTTP 测试，验证后端服务与系统集成。',
+            'en': 'Developed and executed API and HTTP tests to validate backend services and system integrations.',
+        },
+        'Effectuer des tests fonctionnels, de régression, de compatibilité et de mise en production sur différentes versions des applications.': {
+            'zh': '执行功能、回归、兼容性和上线验证测试，覆盖多个应用版本。',
+            'en': 'Performed functional, regression, compatibility, and release validation testing across multiple application versions.',
+        },
+        'Valider des flux de travail complexes, des règles d’affaires et des comportements basés sur les rôles dans des applications Web.': {
+            'zh': '验证 Web 应用中的复杂流程、业务规则与角色权限行为。',
+            'en': 'Validated complex workflows, business rules, and role-based behaviors in web applications.',
+        },
+        'Effectuer des validations de bases de données à l’aide de requêtes SQL afin d’assurer l’intégrité des données et diagnostiquer des problèmes système.': {
+            'zh': '通过 SQL 查询进行数据库校验，确保数据完整性并辅助定位系统问题。',
+            'en': 'Validated databases with SQL queries to ensure data integrity and diagnose system issues.',
+        },
+        'Gérer et maintenir les environnements de test en résolvant des problèmes de configuration et de connectivité.': {
+            'zh': '维护测试环境并解决配置与连通性问题。',
+            'en': 'Managed and maintained test environments by resolving configuration and connectivity issues.',
+        },
+        'Intégrer des tests automatisés dans des pipelines CI/CD à l’aide de Jenkins afin d’améliorer l’efficacité des tests et la fiabilité des mises en production.': {
+            'zh': '将自动化测试接入 Jenkins CI/CD 流水线，提升测试效率和发布可靠性。',
+            'en': 'Integrated automated tests into Jenkins CI/CD pipelines to improve testing efficiency and release reliability.',
+        },
+        'Analyser les journaux d’application (logs) afin d’identifier les causes racines des anomalies et des défaillances système.': {
+            'zh': '分析应用日志，定位缺陷与系统故障的根因。',
+            'en': 'Analyzed application logs to identify the root causes of defects and system failures.',
+        },
+        'Suivre, prioriser et valider les anomalies tout au long de leur cycle de vie à l’aide de Jira et d’outils similaires.': {
+            'zh': '使用 Jira 等工具跟踪、分级并验证缺陷的完整生命周期。',
+            'en': 'Tracked, prioritized, and validated defects across their full lifecycle using Jira and similar tools.',
+        },
+        'Configurer les paramètres du BIOS et effectuer l’initialisation du matériel et la configuration des systèmes.': {
+            'zh': '配置 BIOS 参数，完成硬件初始化与系统配置。',
+            'en': 'Configured BIOS settings and performed hardware initialization and system setup.',
+        },
+        'Remplacer et mettre à niveau des composants matériels, notamment la mémoire RAM, les disques durs (HDD/SSD), les claviers, les écrans et les batteries (y compris la pile CMOS),etc': {
+            'zh': '更换和升级 RAM、HDD/SSD、键盘、显示器及电池等硬件组件。',
+            'en': 'Replaced and upgraded hardware components including RAM, HDD/SSD, keyboards, monitors, and batteries.',
+        },
+        'Installer et configurer des systèmes d’exploitation et mettre à jour les pilotes afin d’assurer la compatibilité et la performance des systèmes.': {
+            'zh': '安装和配置操作系统并更新驱动，确保系统兼容性与性能。',
+            'en': 'Installed and configured operating systems and updated drivers to ensure system compatibility and performance.',
+        },
+        'Effectuer des tests de performance (Burn-In tests) pour vérifier la stabilité et la fiabilité du matériel.': {
+            'zh': '执行 Burn-In 压力测试，验证硬件稳定性与可靠性。',
+            'en': 'Performed burn-in testing to verify hardware stability and reliability.',
+        },
+        'Diagnostiquer et résoudre des problèmes matériels sur des ordinateurs portables et de bureau.': {
+            'zh': '诊断并解决台式机与笔记本的硬件故障。',
+            'en': 'Diagnosed and resolved hardware issues on laptops and desktop systems.',
+        },
+    }
+    return mapping.get(text, {}).get(lang, text)
+
+
 def render_experience_localized(profile: dict, lang: str) -> str:
     exps = profile.get('work_experience', []) or []
     blocks = []
@@ -231,6 +327,8 @@ def render_experience_localized(profile: dict, lang: str) -> str:
         title = exp.get('title', '')
         company = exp.get('company', '')
         details = [d for d in exp.get('details', []) if d][:5]
+        title, company = localize_title_company(title, company, lang)
+        details = [translate_experience_detail(d, lang) for d in details]
         header = f'{period} | {title} | {company}'.strip(' |')
         if lang == 'zh':
             prefix = '• '
@@ -243,6 +341,57 @@ def render_experience_localized(profile: dict, lang: str) -> str:
             block += '\n' + bullets(details, prefix)
         blocks.append(block)
     return '\n\n'.join(blocks)
+
+
+def build_intro_pitch(company: str, position: str, lang: str) -> str:
+    pitches = {
+        'zh': f'我是一名拥有 10+ 年经验的软件测试从业者，长期负责功能、集成、回归、API 与数据校验测试，也参与缺陷跟踪、测试环境维护和自动化落地。我认为自己与 {company} 的 {position} 岗位高度匹配，因为这个岗位需要的 API、SQL、UAT、CI/CD 与 Agile 协作能力，正是我过往工作中持续使用并沉淀的方法。',
+        'en': f'I am a QA professional with 10+ years of experience across functional, integration, regression, API, and data-validation testing. I have also supported defect management, test environment stability, and progressive automation initiatives. I am a strong fit for the {position} role at {company} because the role’s expectations around API testing, SQL validation, UAT support, CI/CD collaboration, and Agile delivery directly match the work I have done over time.',
+        'fr': f'Je suis une professionnelle QA avec plus de 10 ans d’expérience en tests fonctionnels, d’intégration, de régression, d’API et validation de données. J’ai également soutenu la gestion des anomalies, la stabilité des environnements de test et l’automatisation progressive. Je considère que mon profil correspond bien au poste de {position} chez {company}, car les attentes du rôle autour des API, de SQL, du UAT, du CI/CD et du travail Agile reflètent directement mon expérience terrain.',
+    }
+    return pitches[lang]
+
+
+def build_star_examples(lang: str) -> list[str]:
+    examples = {
+        'zh': [
+            'STAR 1：在多版本应用发布前，负责设计 API、集成和回归测试范围；通过补充 SQL 校验与日志分析，提前发现关键数据问题，降低上线风险。',
+            'STAR 2：在测试环境不稳定时，先排查配置与连通性，再恢复环境并补跑关键回归用例，保证 sprint 节奏不被打断。',
+            'STAR 3：将 Selenium 与 Jenkins 结合纳入 CI/CD，优先自动化高频回归场景，逐步提升测试效率与发布信心。',
+        ],
+        'en': [
+            'STAR 1: Before a multi-version release, owned API, integration, and regression coverage; added SQL validation and log analysis to catch critical data issues before production.',
+            'STAR 2: When a test environment became unstable, first resolved configuration and connectivity issues, then restored the environment and reran critical regression cases to protect sprint delivery.',
+            'STAR 3: Introduced Selenium checks into Jenkins-driven CI/CD by starting with high-value regression scenarios, improving test efficiency and release confidence over time.',
+        ],
+        'fr': [
+            'STAR 1 : Avant une mise en production multi-version, prise en charge de la couverture API, intégration et régression ; ajout de validations SQL et d’analyse de logs pour détecter des anomalies critiques avant production.',
+            'STAR 2 : Lorsqu’un environnement de test est devenu instable, résolution des problèmes de configuration et de connectivité, puis relance des cas de régression critiques afin de protéger le rythme de livraison.',
+            'STAR 3 : Intégration progressive de scénarios Selenium dans un pipeline Jenkins/CI-CD, en commençant par les régressions à forte valeur pour améliorer l’efficacité et la confiance de mise en production.',
+        ],
+    }
+    return examples[lang]
+
+
+def build_risk_answers(lang: str) -> list[str]:
+    answers = {
+        'zh': [
+            '语言：当前简历显示法语为主，但可按岗位需要补充英文沟通与英文测试文档能力证明。',
+            '本地经验：重点强调企业级 QA、跨团队协作、UAT 与发布支持经验本身具备可迁移性。',
+            '办公地点：应尽早确认 Montreal office 位置与 hybrid 频率，确保符合西岛通勤要求。',
+        ],
+        'en': [
+            'Language: the current resume is primarily French-based, so be ready to demonstrate English communication and documentation capability when needed.',
+            'Local experience: emphasize that enterprise QA, cross-functional collaboration, UAT, and release support experience is highly transferable.',
+            'Work model: confirm the exact Montreal office location and hybrid cadence early to ensure the commute fits your constraints.',
+        ],
+        'fr': [
+            'Langue : le CV source est principalement en français ; il faut être prête à démontrer la capacité de communication et de documentation en anglais si nécessaire.',
+            'Expérience locale : mettre en avant le caractère transférable de l’expérience QA en contexte entreprise, collaboration inter-équipes, UAT et support aux livraisons.',
+            'Mode de travail : confirmer rapidement le lieu exact à Montréal et la fréquence hybride pour vérifier l’adéquation avec la contrainte de trajet.',
+        ],
+    }
+    return answers[lang]
 
 
 def build_role_summaries(company: str, position: str, summary_text: str, focus_zh: list[str], focus_en: list[str], focus_fr: list[str]) -> tuple[str, str, str]:
