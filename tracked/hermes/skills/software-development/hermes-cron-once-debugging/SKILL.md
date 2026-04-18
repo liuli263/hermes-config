@@ -17,7 +17,8 @@ Use this when a user reports that a one-shot cron job "did not run", `last_run_a
 3. Stronger proof comes from files under `~/.hermes/cron/output/<job_id>/`.
 4. After the observability fix, each run should also leave `latest_run.json` beside the markdown output file.
 5. For cron delivery debugging, `deliver=origin` may fail to resolve a target in autonomous cron runs even when an interactive chat exists. If `latest_run.json` shows `no delivery target resolved for deliver=origin`, switch the job to an explicit target like `weixin:<chat_id>` and retest.
-6. A successful explicit Weixin delivery may still record `message_id: null`; treat `delivery_error: null` plus correct `platform/chat_id` in `delivery_metadata` as the stronger success signal.
+6. If explicit delivery works but persisted jobs show `"origin": null`, treat this as a **creation-time origin capture problem**, not a scheduler delivery problem. In Hermes, `tools/cronjob_tools.py::_origin_from_env()` now reads via `gateway.session_context.get_session_env(...)`, so the next breakpoint is whether gateway session context reached the thread that executed the tool call.
+7. A successful explicit Weixin delivery may still record `message_id: null`; treat `delivery_error: null` plus correct `platform/chat_id` in `delivery_metadata` as the stronger success signal.
 
 ## Fast triage procedure
 
