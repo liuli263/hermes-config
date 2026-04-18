@@ -21,6 +21,7 @@ Use this when a user reports that a one-shot cron job "did not run", `last_run_a
 7. Do **not** use successful ADC / image-generation / background-task callbacks as evidence that cron `deliver=origin` is healthy. Those gateway callbacks can send directly with `adapter.send(chat_id=source.chat_id, ...)`, which bypasses cron origin capture entirely. A system can therefore have working async task notifications and still have broken cron `deliver=origin` behavior.
 8. In the real Hermes gateway path, agent work may run inside `gateway/run.py` via `loop.run_in_executor(...)`. Plain `run_in_executor` does **not** preserve `contextvars` automatically. If cron origin capture depends on session context, wrap the executor work with `contextvars.copy_context()` and `ctx.run(run_sync)`; otherwise `_origin_from_env()` may read empty platform/chat values and persist `origin: null`.
 9. A successful explicit Weixin delivery may still record `message_id: null`; treat `delivery_error: null` plus correct `platform/chat_id` in `delivery_metadata` as the stronger success signal.
+10. If a real self-test created from the live Weixin chat succeeds with `deliver: "origin"`, `success: true`, `delivery_error: null`, and correct `delivery_metadata.platform/chat_id`, consider the origin-resolution bug fixed. Shift investigation to scheduler tick timing if execution is delayed.
 
 ## Fast triage procedure
 
