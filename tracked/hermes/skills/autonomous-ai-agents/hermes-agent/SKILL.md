@@ -694,6 +694,27 @@ hermes cron status
 grep -i "cron\|scheduler\|failed to send\|error" ~/.hermes/logs/gateway.log | tail -50
 ```
 5. If a one-off manual trigger is urgent and the scheduler is flaky, tell the user the run may not happen instantly and consider recreating the job after checking status.
+6. For cron jobs that target messaging platforms, `last_status=ok` means the agent task completed, **not** that the platform delivery definitely succeeded. Likewise, `last_delivery_error=null` only means no delivery error was recorded.
+7. If a user says a scheduled digest "never arrived" but you can prove output was generated, explicitly separate these layers:
+   - scheduler alive?
+   - job executed?
+   - output/session artifact generated?
+   - delivery target configured correctly?
+   - delivery success actually observable?
+8. In current Hermes behavior, cron auto-delivery may **not mirror success back into the gateway session**, so absence of a session-side send receipt is not proof of non-delivery.
+9. For long Weixin digests, keep in mind that message splitting/display can make the result feel like "no response" even when the send path ran; verify delivery metadata/logs before assuming the scheduler failed.
+10. When adding or debugging cron delivery observability, prefer persisting structured delivery metadata on the job record (for example `platform`, `chat_id`, `thread_id`, `message_id`) instead of changing session-mirroring semantics.
+11. When running cron scheduler tests on a machine where the real Hermes gateway is currently running, `tick()` can return early because the real scheduler lock is held. If focused tests unexpectedly show mocked helpers like `save_job_output()` / `_deliver_result()` were never called, re-run them under an isolated temporary `HERMES_HOME` so the test uses a separate lock file.
+
+Example isolation pattern:
+```bash
+tmp_home=$(mktemp -d)
+export HERMES_HOME="$tmp_home"
+source venv/bin/activate
+python -m pytest tests/cron/test_scheduler.py -q -n0
+```
+
+This avoids false negatives caused by the live gateway process, especially when debugging `cron.scheduler.tick()` behavior locally.
 
 ### Platform-specific issues
 - **Discord bot silent**: Must enable **Message Content Intent** in Bot → Privileged Gateway Intents.
