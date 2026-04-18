@@ -171,6 +171,8 @@ For a Chinese digest with strict formatting requirements:
 - AP article pages may include huge HTML blobs; extract only meta tags instead of full-body parsing.
 - `python3 urllib` network failures do not imply `curl` failure.
 - RSS category feeds can be sparse; mix AP hubs + NPR/CBS feeds to reach enough distinct topics.
+- In cron runs, avoid one giant `execute_code` script that fetches many URLs serially with `curl`; this can consume the full 300s sandbox limit and prevent any final response from being produced.
+- Prefer small `terminal` fetches per source, or at most tiny `execute_code` parsing snippets over already-fetched content.
 
 ## Verification
 Before finalizing:
