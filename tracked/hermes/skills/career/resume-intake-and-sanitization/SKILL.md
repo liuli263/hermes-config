@@ -107,9 +107,12 @@ python3 scripts/intake_resume.py \
 - 若用户只发来附件而无可解析文本，不要臆造内容；先提取文本再入库。
 - 对 DOCX / 法语等简历，首行常常是 `Profil professionnel`、`Compétences`、`Experience` 等标题，不能直接把第一行当姓名。
 - `.docx` 简历在当前环境里可直接用 `zipfile` 读取 `word/document.xml` 提取正文；这比依赖 `python-docx` 更稳，因为环境里未必安装该库。
+- 对法语/英文简历，先按 section heading 切块，再做结构化提取。常见 heading：`Profil professionnel`、`Compétences Techniques`、`Expériences`/`Experience`、`Formation`、`Certifications`、`Langues`。
+- Word 导出的正文经常把一句职责拆成多行；工作经历不要直接逐行入库。应以“年份行”作为 entry 起点，以项目符号 `•` 作为 bullet 起点，把后续非 bullet 的换行拼接回当前 bullet，避免 `work_experience.details` 被碎裂。
+- 可额外输出 `detected_language`；如果正文明显是法语而未显式出现语言字段，可默认补出 `French`，便于后续生成简历草稿。
 - 姓名候选行要额外过滤：含数字、邮箱、冒号、项目符号的行排除；仅在像人名的短行（如 2-4 个首字母大写词，或 2-4 个中文字符）时才接受。
 - 电话提取时要避开年份区间（如 `2007-2019`）；若无法可靠识别联系方式，应保留为空，而不是写入错误值。
-- 如果文档正文提取成功，但姓名 / 电话 / 邮箱 / 地址未显式出现，应输出“可用于能力分析，不适合直接投递”的结论。
+- 如果文档正文提取成功，但姓名 / 电话 / 邮箱 / 地址 / 教育经历未显式出现，应输出“可用于能力分析，不适合直接投递”的结论，并在草稿里保留待补充占位。
 - 所有 AI 总结、职位匹配、面试分析都默认使用脱敏 JSON。
 - 真值映射只保存在本地目录，不在对外分享文件中暴露。
 - 任务结束后的“通过微信总结”由当前会话最终回复承担。
