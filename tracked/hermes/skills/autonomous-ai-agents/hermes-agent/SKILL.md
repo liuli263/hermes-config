@@ -682,6 +682,32 @@ Do root-cause investigation first before changing config on a live system.
 ### Cron jobs not delivering / manual run confusion
 Cron jobs can fail in a few non-obvious ways:
 
+#### `deliver=origin` works conceptually but later cannot resolve the original chat
+If a cron job created from a live gateway conversation later fails only when using `deliver=origin` (while explicit delivery like `weixin:<chat_id>` works), do **not** start by debugging the transport adapter. First verify whether the job ever captured the original session metadata correctly.
+
+Root-cause pattern found in a real Hermes investigation:
+- `tools/cronjob_tools.py` captures cron origin from session-scoped values via `get_session_env(...)`
+- those values primarily come from `gateway/session_context.py` `ContextVar`s (`HERMES_SESSION_PLATFORM`, `HERMES_SESSION_CHAT_ID`, `HERMES_SESSION_THREAD_ID`, etc.)
+- the main gateway agent path in `gateway/run.py` executes `run_sync()` via `loop.run_in_executor(None, run_sync)`
+- if that executor handoff does **not** wrap the call in `contextvars.copy_context().run(...)`, the worker thread can lose the live gateway session context
+- result: cron creation appears to succeed, but persisted `origin.platform` / `origin.chat_id` / `origin.thread_id` may be missing or wrong, so scheduler-side `deliver=origin` later fails even though direct explicit delivery works
+
+Recommended debugging sequence:
+1. Confirm symptom split:
+   - explicit `platform:chat_id` delivery works
+   - `deliver=origin` fails
+2. Inspect `tools/cronjob_tools.py` and verify origin capture comes from `get_session_env(...)`.
+3. Inspect `gateway/session_context.py` and note the `ContextVar` → `os.environ` fallback behavior.
+4. Inspect the actual gateway execution path in `gateway/run.py` and find the executor boundary around `run_sync()`.
+5. If the code uses bare `run_in_executor(None, run_sync)`, treat missing `copy_context()` as the prime suspect.
+6. Add a regression test that proves session context remains visible inside the executor thread before changing production code.
+7. After any fix, verify with a real gateway-created cron job and inspect persisted job/origin artifacts — not just unit tests.
+
+Important nuance:
+- `get_session_env()` falls back to `os.environ`, which can mask the bug in CLI/cron/test contexts.
+- That means the problem may reproduce only on the live gateway path, especially under concurrent messaging platforms like Weixin.
+
+
 1. **`cronjob(action='run')` is not guaranteed to execute immediately** — the CLI docs say `hermes cron run ID` triggers the job **on the next scheduler tick**. If you need proof it actually ran, verify with `cronjob(action='list')` and inspect:
    - `last_run_at`
    - `last_status`
