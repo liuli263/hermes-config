@@ -714,6 +714,50 @@ Safe guidance:
 - if old sessions or workflows still rely on those cached local files, those references may stop working until files are re-downloaded or may be unrecoverable from local cache
 - broad deletion of `~/.cache` should be more cautious because it affects many unrelated apps
 
+#### If the user wants automatic cache cleanup at a fixed time each day
+A reusable pattern validated in a real setup is to create a dedicated cleanup script under `~/.hermes/scripts/` and then schedule it with a Hermes cron job.
+
+Recommended script behavior:
+1. Only operate on these Hermes cache directories unless the user explicitly broadens scope:
+   - `~/.hermes/cache/documents`
+   - `~/.hermes/cache/screenshots`
+2. Use file `st_mtime` as the practical proxy for download/landing time.
+3. Delete files older than the retention window (for example 24 hours).
+4. Optionally remove empty directories left behind.
+5. Support a `--dry-run` mode that prints JSON with at least:
+   - cutoff time
+   - deleted_count
+   - deleted_bytes
+   - failed_count
+   - sample_deleted
+
+Reference Python shape:
+```python
+RETENTION_SECONDS = 24 * 60 * 60
+TARGET_DIRS = [
+    Path.home() / '.hermes' / 'cache' / 'documents',
+    Path.home() / '.hermes' / 'cache' / 'screenshots',
+]
+
+cutoff = time.time() - RETENTION_SECONDS
+if stat.st_mtime < cutoff:
+    path.unlink()
+```
+
+Validation workflow before scheduling:
+1. Check timezone with `date` so the user-facing schedule is grounded.
+2. Confirm both target directories exist.
+3. Run the script with `--dry-run` first and inspect counts/bytes.
+4. Only then create the cron job.
+
+Recommended cron pattern:
+- Use schedule `0 3 * * *` for a daily 03:00 China-time cleanup when the user asks for "每天凌晨3点".
+- If the user wants a Weixin report after each run, set `deliver` to the current Weixin chat and instruct the cron prompt to send a short Chinese summary containing deleted file count, deleted bytes, failure count, and execution time.
+- If the user does not want chat noise, keep `deliver=local`.
+
+Important practical finding:
+- users may typo `screenshots` as `screenshorts`; verify the real on-disk directory before configuring the cron job, and follow the actual filesystem path rather than the typo.
+
 #### Email gateway unexpectedly auto-replies to mailbox senders
 If Hermes is suddenly sending `Re:` emails or generating delivery failures / bounces, do **not** assume it's just SMTP noise. Verify whether the Email platform was implicitly enabled.
 
