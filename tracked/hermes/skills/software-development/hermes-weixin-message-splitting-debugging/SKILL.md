@@ -87,6 +87,31 @@ A confirmed failure mode in this repo was:
 - short Chinese multiline replies were treated as "chatty" and broken into multiple bubbles
 - users perceived this as missing/truncated text
 
+## Cron auto-delivery observability lesson
+
+When the symptom is specifically **"cron job ran, produced text, but Weixin chat seems to show nothing"**, do **not** rely on the cron session alone.
+
+Important repo-specific behavior discovered during investigation:
+
+- `cron/scheduler.py:_deliver_result(...)` handles cron auto-delivery after `final_response` is produced.
+- Successful cron delivery returns `None` and logs success, but does **not** persist a send receipt like `message_id` back into the cron session or job record.
+- `tests/cron/test_scheduler.py` explicitly asserts that **cron deliveries should NOT mirror into the gateway session**.
+- Therefore a cron session whose final message is just the generated body may still have attempted delivery; absence of a send receipt in that session is **not proof of non-delivery**.
+- `last_status = ok` means the agent run succeeded.
+- Delivery success/failure is tracked separately via `last_delivery_error`.
+
+So for cron + Weixin incidents, separate these questions:
+1. Did the job execute and generate a response?
+2. Was auto-delivery configured to the expected Weixin target?
+3. Did `last_delivery_error` record a send failure?
+4. Are there adapter/log signals of delivery, even if the session lacks a mirrored receipt?
+
+Do not confuse:
+- **content generation success**,
+- **cron auto-delivery attempt**,
+- **session mirroring**, and
+- **user-visible appearance in the Weixin client**.
+
 ## Proven minimal fix
 
 In compact/default mode, when `len(content) <= max_length`, return:
