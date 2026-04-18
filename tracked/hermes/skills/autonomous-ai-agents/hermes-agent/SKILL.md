@@ -645,6 +645,75 @@ Common gateway problems:
 - **Gateway dies on WSL2 close**: WSL2 requires `systemd=true` in `/etc/wsl.conf` for systemd services to work. Without it, gateway falls back to `nohup` (dies when session closes).
 - **Gateway crash loop**: Reset the failed state: `systemctl --user reset-failed hermes-gateway`
 
+#### Disable Hermes gateway autostart but keep manual start available
+If a user wants Hermes gateway removed from system startup/autostart but still available for manual use, do **not** delete the unit file first. Prefer disabling the user service while preserving the service definition.
+
+Recommended sequence:
+1. Inspect current state:
+```bash
+systemctl --user status hermes-gateway --no-pager
+systemctl --user is-enabled hermes-gateway || true
+systemctl --user list-unit-files 'hermes-gateway*' --no-pager
+```
+2. Disable autostart and stop the running service in one step:
+```bash
+systemctl --user disable --now hermes-gateway
+```
+3. Clear stale failed state so later status output is not confusing:
+```bash
+systemctl --user reset-failed hermes-gateway
+```
+4. Verify:
+```bash
+systemctl --user is-enabled hermes-gateway || true
+systemctl --user status hermes-gateway --no-pager
+hermes gateway status
+```
+
+Expected outcome:
+- `is-enabled` returns `disabled`
+- the service is inactive/dead
+- the user can still start it manually with `hermes gateway start` and stop it with `hermes gateway stop`
+
+Why this approach:
+- satisfies the request to remove autostart
+- preserves future manual usability
+- avoids unnecessary deletion/recreation of the systemd unit
+
+#### Large `~/.hermes/cache` usage after gateway failures or manual-only operation
+If a user asks whether large Hermes cache directories can be deleted, verify what kind of cache it is before removing anything.
+
+Important semantics confirmed in the current code:
+- `~/.hermes/cache/documents` is a true document cache used for downloaded platform attachments so the agent can reference them by local file path.
+- `~/.hermes/cache/screenshots` stores browser screenshots.
+- Gateway runtime periodically calls `cleanup_document_cache(max_age_hours=24)` and image cleanup from `gateway/run.py`.
+- Browser screenshot cleanup is also time-based in the browser tool.
+
+Practical consequence discovered in a real setup:
+- if gateway has been failing, stopped for a long time, or intentionally switched to manual-only operation, these periodic cleanups may not run regularly
+- cache can therefore grow far beyond the intended 24-hour retention window
+
+Recommended investigation flow:
+1. Measure size first:
+```bash
+du -sh ~/.hermes/cache ~/.hermes/cache/* 2>/dev/null || true
+```
+2. If `documents` is large, sample file names to confirm it contains cached attachments rather than primary data.
+3. Inspect source when needed:
+   - `gateway/platforms/base.py`
+   - `gateway/run.py`
+   - `tools/browser_tool.py`
+   - `tools/credential_files.py`
+4. When answering the user, clearly separate:
+   - Hermes-specific caches (`~/.hermes/cache/*`)
+   - general application caches (`~/.cache/*`)
+
+Safe guidance:
+- deleting `~/.hermes/cache/screenshots` is generally low risk
+- deleting `~/.hermes/cache/documents` is usually safe for configuration/state, but removes local copies of previously cached attachments
+- if old sessions or workflows still rely on those cached local files, those references may stop working until files are re-downloaded or may be unrecoverable from local cache
+- broad deletion of `~/.cache` should be more cautious because it affects many unrelated apps
+
 #### Email gateway unexpectedly auto-replies to mailbox senders
 If Hermes is suddenly sending `Re:` emails or generating delivery failures / bounces, do **not** assume it's just SMTP noise. Verify whether the Email platform was implicitly enabled.
 

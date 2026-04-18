@@ -45,10 +45,52 @@ def load_text(args: argparse.Namespace) -> str:
     raise SystemExit('Provide --text, --text-file, or a text-like --input-file')
 
 
+def looks_like_heading(line: str) -> bool:
+    lowered = line.strip().lower()
+    bad_prefixes = [
+        'profil', 'profile', 'summary', 'professional summary', 'compétences', 'skills',
+        'expériences', 'experience', 'responsabilités', 'responsibilities', 'education',
+    ]
+    return any(lowered.startswith(prefix) for prefix in bad_prefixes)
+
+
+def pick_name(lines: list[str]) -> str:
+    for line in lines[:12]:
+        s = line.strip()
+        if not s or len(s) > 60 or any(ch.isdigit() for ch in s):
+            continue
+        if '@' in s or ':' in s or '•' in s:
+            continue
+        if looks_like_heading(s):
+            continue
+        if re.fullmatch(r'[\u4e00-\u9fff]{2,4}', s):
+            return s
+        words = s.split()
+        if not (2 <= len(words) <= 4):
+            continue
+        if all(re.fullmatch(r"[A-ZÀ-ÖØ-Ý][A-Za-zÀ-ÖØ-öø-ÿ'’-]+", w) for w in words):
+            return s
+    return ''
+
+
+def pick_phone(raw: str) -> str:
+    candidates = re.findall(r'(\+?\d[\d\s\-()]{7,}\d)', raw)
+    for candidate in candidates:
+        digits = re.sub(r'\D', '', candidate)
+        if len(digits) < 8:
+            continue
+        if re.fullmatch(r'(19|20)\d{2}(19|20)?\d{2}', digits):
+            continue
+        if '-' in candidate and ' ' not in candidate and len(digits) <= 8:
+            continue
+        return candidate.strip()
+    return ''
+
+
 def detect(raw: str) -> tuple[dict, dict]:
     lines = [line.strip() for line in raw.splitlines() if line.strip()]
     profile = {
-        'name': lines[0] if lines else '',
+        'name': pick_name(lines),
         'phone': '',
         'email': '',
         'address': '',
@@ -64,9 +106,9 @@ def detect(raw: str) -> tuple[dict, dict]:
     if email:
         profile['email'] = email.group(0)
         mapping['email'] = profile['email']
-    phone = re.search(r'(\+?\d[\d\s\-]{7,}\d)', raw)
+    phone = pick_phone(raw)
     if phone:
-        profile['phone'] = phone.group(1).strip()
+        profile['phone'] = phone
         mapping['phone'] = profile['phone']
     bday = re.search(r'(19\d{2}|20\d{2})[-/.年](\d{1,2})[-/.月](\d{1,2})', raw)
     if bday:
