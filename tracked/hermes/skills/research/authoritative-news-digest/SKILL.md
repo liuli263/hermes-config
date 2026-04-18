@@ -34,6 +34,8 @@ In constrained environments, these worked reliably:
    - `https://www.cbsnews.com/latest/rss/world`
    - `https://www.cbsnews.com/latest/rss/moneywatch`
    - `https://www.cbsnews.com/latest/rss/technology`
+   - `https://www.cbsnews.com/latest/rss/politics`
+   - `https://www.cbsnews.com/latest/rss/us`
 4. **The Verge Atom feed**
    - `https://www.theverge.com/rss/index.xml`
    - Note: this is Atom, not RSS; parse `<entry>`, `<published>`, and alternate `<link href=...>`.
@@ -48,6 +50,7 @@ Observed failure modes:
 - The Verge feed is Atom, so RSS-only parsing will incorrectly return zero items.
 - CBS feeds can contain many video-only items and the same story can appear in multiple section feeds; filter duplicates by URL/title and prefer text articles over video clips when building a top-news digest.
 - The Verge feed is useful for tech developments, but it also contains reviews, deals, and features; for a "most important news" digest, include only hard-news items with clear public-interest significance.
+- Piping `curl` output directly into a parser can trigger noisy `curl: (23) Failure writing output to destination` / broken-pipe behavior when the consumer exits early; in practice it is more reliable to download AP section HTML to a temp file first, then parse the saved file.
 - AP article pages may expose `article:published_time` without an explicit timezone offset (for example `2026-04-17T04:08:14`); treat naive timestamps carefully and compare conservatively against the 24-hour window rather than assuming UTC.
 
 ## Workflow

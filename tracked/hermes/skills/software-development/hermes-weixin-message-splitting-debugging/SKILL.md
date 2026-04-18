@@ -126,6 +126,27 @@ So for cron + Weixin incidents, separate these questions:
 3. Did `last_delivery_error` record a send failure?
 4. Are there adapter/log signals of delivery, even if the session lacks a mirrored receipt?
 
+Practical verification sequence that worked in this repo:
+
+```bash
+# 1) Confirm the scheduled job exists and inspect last_status / last_delivery_error
+hermes cron list
+
+# 2) Inspect persisted cron output directly
+ls ~/.hermes/cron/output/<job_id>/
+
+# 3) Read the latest run artifact to distinguish "generation failed" vs
+#    "content generated but client didn't visibly receive it"
+```
+
+Typical artifact path shape:
+- `~/.hermes/cron/output/<job_id>/<YYYY-MM-DD_HH-MM-SS>.md`
+
+If the markdown artifact contains a full `## Response` section with the final digest/body, then:
+- the cron agent run succeeded,
+- content generation succeeded,
+- and any remaining issue is downstream in delivery visibility / client appearance / adapter delivery reliability.
+
 Do not confuse:
 - **content generation success**,
 - **cron auto-delivery attempt**,
