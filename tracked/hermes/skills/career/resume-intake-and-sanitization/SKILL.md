@@ -16,7 +16,8 @@ metadata:
 2. 将简历内容转成 JSON 做汇总
 3. 生成脱敏版 JSON 供后续 AI 分析使用
 4. 保留真实版 JSON 仅本地使用
-5. 完成后在微信里给出总结
+5. 尽量把正文结构化为 `summary`、`skills`、`work_experience`、`education`、`certifications`、`languages`
+6. 完成后在微信里给出总结
 
 ## 存储规范
 默认根目录：
@@ -32,6 +33,15 @@ metadata:
 - `resume/json/latest_sanitized_profile.json`
 - `resume/json/latest_mapping.json`
 - `resume/json/YYYY-MM-DD_HHMMSS_resume_summary.json`
+
+其中 profile JSON 应优先包含：
+- `summary`
+- `skills`
+- `work_experience`
+- `education`
+- `certifications`
+- `languages`
+- `raw_text`
 
 ## 执行步骤
 1. 接收到简历附件后，先保存原件。
@@ -75,6 +85,8 @@ python3 scripts/intake_resume.py \
 - `mapping_json`
 - `detected_fields`
 - `summary`
+- `work_experience_count`
+- `education_count`
 
 ## 脱敏要求
 至少替换：
