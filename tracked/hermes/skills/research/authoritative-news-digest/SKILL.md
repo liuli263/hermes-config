@@ -52,6 +52,7 @@ Observed failure modes:
 - The Verge feed is useful for tech developments, but it also contains reviews, deals, and features; for a "most important news" digest, include only hard-news items with clear public-interest significance.
 - Piping `curl` output directly into a parser can trigger noisy `curl: (23) Failure writing output to destination` / broken-pipe behavior when the consumer exits early; in practice it is more reliable to download AP section HTML to a temp file first, then parse the saved file.
 - AP article pages may expose `article:published_time` without an explicit timezone offset (for example `2026-04-17T04:08:14`); treat naive timestamps carefully and compare conservatively against the 24-hour window rather than assuming UTC.
+- AP section and hub pages can surface prominently linked stories that are much older than the current window (for example, month-old explainer or feature links mixed into fresh coverage). Do not infer recency from page position or section placement — always fetch each article page and verify `article:published_time` before including it.
 
 ## Workflow
 
