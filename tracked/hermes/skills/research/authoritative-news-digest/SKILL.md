@@ -42,6 +42,7 @@ In constrained environments, these worked reliably:
 
 Observed failure modes:
 - Browser navigation to Reuters may fail with `ERR_CONNECTION_REFUSED`.
+- Browser navigation to AP section pages can also time out even when `curl` to the same URL succeeds; do not abandon AP just because browser automation is flaky.
 - Direct `curl`/browser access to BBC, Reuters, FT, NYT, Guardian, Al Jazeera may time out.
 - Python `urllib` may fail with `Network is unreachable` even when `curl` succeeds.
 - Some RSS feeds (example: CNN) can fail with TLS EOF errors.
@@ -86,10 +87,11 @@ Extract article URLs with regex, normalize to full URLs, then fetch article page
 Useful regex:
 ```python
 rels = re.findall(r'/article/[a-z0-9\\-]+', html)
-urls = ['https://apnews.com' + r for r in rels]
+abs_urls = re.findall(r'https://apnews.com/article/[a-z0-9\\-]+', html)
+urls = ['https://apnews.com' + r for r in rels] + abs_urls
 ```
 
-Do not assume `https://apnews.com/article/...` appears directly in the page HTML — in practice that pattern can return zero matches even when the page contains many valid article links.
+Support both relative and absolute AP article URLs. In some runs the page exposes relative `/article/...` links; in others, full `https://apnews.com/article/...` links are also present. Deduplicate after extraction rather than assuming only one form will appear.
 
 ### 5) Extract AP article metadata from meta tags
 For each AP article page, pull:
@@ -176,6 +178,7 @@ For a Chinese digest with strict formatting requirements:
 - `python3 urllib` network failures do not imply `curl` failure.
 - RSS category feeds can be sparse; mix AP hubs + NPR/CBS feeds to reach enough distinct topics.
 - In cron runs, avoid one giant `execute_code` script that fetches many URLs serially with `curl`; this can consume the full 300s sandbox limit and prevent any final response from being produced.
+- Even when total runtime is acceptable, nested `terminal()` calls inside `execute_code` can be less reliable for AP bulk extraction than a single `terminal` call running a short Python script with `subprocess` + `curl`. If AP extraction behaves oddly or returns unexpectedly empty results, switch to `terminal` with one self-contained Python snippet.
 - Prefer small `terminal` fetches per source, or at most tiny `execute_code` parsing snippets over already-fetched content.
 
 ## Verification
