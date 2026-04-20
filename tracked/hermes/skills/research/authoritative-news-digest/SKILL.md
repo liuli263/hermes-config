@@ -54,6 +54,8 @@ Observed failure modes:
 - Piping `curl` output directly into a parser can trigger noisy `curl: (23) Failure writing output to destination` / broken-pipe behavior when the consumer exits early; in practice it is more reliable to download AP section HTML to a temp file first, then parse the saved file.
 - AP article pages may expose `article:published_time` without an explicit timezone offset (for example `2026-04-17T04:08:14`); treat naive timestamps carefully and compare conservatively against the 24-hour window rather than assuming UTC.
 - AP section and hub pages can surface prominently linked stories that are much older than the current window (for example, month-old explainer or feature links mixed into fresh coverage). Do not infer recency from page position or section placement — always fetch each article page and verify `article:published_time` before including it.
+- AP availability can vary by path and by request timing. In one run, `https://apnews.com/politics` returned full HTML while `world-news`, `business`, and `science` returned Cloudflare `error code: 1015`, and a previously usable hub page later exposed zero extractable article URLs. Treat AP as opportunistic, not guaranteed: probe multiple AP paths, expect inconsistent rate limiting, and keep RSS sources ready as the primary fallback.
+- CBS RSS `pubDate` can reflect feed/update timing rather than the article's original publication time. A story may appear to be within the last 24 hours in RSS but have an on-page `article:published_time` older than the requested window. For any CBS item you plan to include, fetch the article page and verify the page-level publication timestamp before finalizing.
 
 ## Workflow
 
