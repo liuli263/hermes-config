@@ -186,6 +186,7 @@ For a Chinese digest with strict formatting requirements:
 - In cron runs, avoid one giant `execute_code` script that fetches many URLs serially with `curl`; this can consume the full 300s sandbox limit and prevent any final response from being produced.
 - Even when total runtime is acceptable, nested `terminal()` calls inside `execute_code` can be less reliable for AP bulk extraction than a single `terminal` call running a short Python script with `subprocess` + `curl`. If AP extraction behaves oddly or returns unexpectedly empty results, switch to `terminal` with one self-contained Python snippet.
 - Prefer small `terminal` fetches per source, or at most tiny `execute_code` parsing snippets over already-fetched content.
+- When verifying candidate article pages, batch the work aggressively: fetching metadata for 8-12 full article URLs in one Python/`curl` loop can still hit sandbox time limits even with modest per-request timeouts. In practice, verify only the top-priority 4-6 candidates at a time, eliminate stale/duplicate stories, then fetch another small batch if you still need more items.
 
 ## Verification
 Before finalizing:
