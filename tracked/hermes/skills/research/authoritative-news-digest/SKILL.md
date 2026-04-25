@@ -84,6 +84,7 @@ date '+%Y-%m-%d %H:%M:%S %Z (%z)'
 ### 2) Probe which sources are reachable
 Use `curl -I -L --max-time 12-20` against candidate outlets.
 Do not assume browser reachability means shell reachability, or vice versa.
+If a high-value RSS feed returns a misleading `000` or otherwise looks dead under `curl -I` / HEAD probing, retry with a normal `GET` before discarding it; in practice some CBS feeds failed the HEAD-style probe but downloaded valid XML with `curl -L`.
 
 ### 3) Pull RSS where possible
 If feeds are reachable, parse with `python3` stdlib XML tools via `execute_code` or shell.
