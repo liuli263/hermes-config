@@ -1,6 +1,6 @@
 # Sync Manifest
 
 - Source: `/home/liuli/.hermes`
-- Generated at: `2026-04-26T09:38:11+08:00`
+- Generated at: `2026-04-26T10:17:24+08:00`
 - Config file is stored as a redacted copy.
 - Runtime state, logs, sessions, caches, database, locks, and `.env` are intentionally excluded.
