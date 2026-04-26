@@ -192,6 +192,7 @@ For a Chinese digest with strict formatting requirements:
 - Do not use mental memory for current events.
 - Do not trust only one outlet if a story seems sensational; cross-check when possible.
 - AP article pages may include huge HTML blobs; extract only meta tags instead of full-body parsing.
+- AP live-update pages can differ from standard AP article pages: they may expose `og:title` / `og:description` but omit `article:published_time`, while still providing a usable JSON-LD `datePublished`. When a major AP story is on a `/live/...` URL, check structured data before discarding it as unverifiable.
 - `python3 urllib` network failures do not imply `curl` failure.
 - RSS category feeds can be sparse; mix AP hubs + NPR/CBS feeds to reach enough distinct topics.
 - In cron runs, avoid one giant `execute_code` script that fetches many URLs serially with `curl`; this can consume the full 300s sandbox limit and prevent any final response from being produced.
