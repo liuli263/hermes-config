@@ -97,6 +97,8 @@ This helps distinguish:
 - private repo visibility issues
 - clone/fetch timeouts that happen only during packfile transfer
 
+Important nuance: `git ls-remote` on an existing but completely empty repository can succeed with exit code 0 and produce no refs at all. Treat that as "repo exists and is reachable, but has no commits yet" rather than as a failure.
+
 **With gh (shorthand):**
 
 ```bash
