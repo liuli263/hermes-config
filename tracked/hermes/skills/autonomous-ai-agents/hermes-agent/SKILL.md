@@ -886,6 +886,35 @@ This avoids false negatives caused by the live gateway process, especially when 
 - **Slack bot only works in DMs**: Must subscribe to `message.channels` event. Without it, the bot ignores public channels.
 - **Windows HTTP 400 "No models provided"**: Config file encoding issue (BOM). Ensure `config.yaml` is saved as UTF-8 without BOM.
 
+### Context length configuration
+Hermes uses `model.context_length` from `~/.hermes/config.yaml` as its budgeting estimate for prompt construction and automatic compression. It does **not** increase the real model/provider context window.
+
+Useful checks:
+```bash
+hermes config
+python3 - <<'PY'
+import yaml, os
+p=os.path.expanduser('~/.hermes/config.yaml')
+d=yaml.safe_load(open(p)) or {}
+print((d.get('model') or {}).get('context_length'))
+print(d.get('compression'))
+PY
+```
+
+To change the estimate:
+```bash
+hermes config set model.context_length 128000
+# or edit manually
+hermes config edit
+```
+
+Important behavior:
+- If `model.context_length` is set higher than the true upstream model limit, Hermes may delay compression too long.
+- Consequences can include provider errors such as `context_length_exceeded`, `maximum context length exceeded`, `request too large`, or silent upstream truncation.
+- Silent truncation is especially dangerous because the model may lose earlier constraints/tool results while Hermes thinks they are still visible.
+- A safer default is to set `model.context_length` equal to or slightly below the provider's documented limit, then tune `compression.threshold`, `target_ratio`, and `protect_last_n` instead of overstating the model window.
+- After changing model/context config, restart the CLI or gateway so the new settings are loaded.
+
 ### Auxiliary models not working
 If `auxiliary` tasks (vision, compression, session_search) fail silently, the `auto` provider can't find a backend. Either set `OPENROUTER_API_KEY` or `GOOGLE_API_KEY`, or explicitly configure each auxiliary task's provider:
 ```bash

@@ -17,3 +17,5 @@ User wants a daily 7:00 AM (China time) digest of the world's top 10 news storie
 用户新增规则：所有开发相关工作（包括性能评估）都应优先安排 Codex 和 Claude Code 执行，而不是由 Hermes 亲自做；执行时要求 Codex 与 Claude Code 相互辩论，直到达成一致。
 §
 用户新增规则：凡 Codex 与 Claude Code 在任务中的辩论、沟通、达成一致过程，详细记录都必须邮件发送到 50803169@qq.com。
+§
+用户要求：调度 Codex 和 Claude Code 工作时不要同时发送命令；必须按串行回合制进行：先让 Codex 处理/提出意见，再让 Claude Code 评审并给出建议，再把 Claude Code 的回复转交给 Codex 继续给意见，如此反复，直到双方达成一致。
