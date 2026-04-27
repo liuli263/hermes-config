@@ -13,3 +13,7 @@ User wants a daily 7:00 AM (China time) digest of the world's top 10 news storie
 用户要求：今后所有研发相关任务（含方案设计、代码评审、bug定位）统一采用多代理流程：先让 Codex 与 Claude Code 多轮讨论形成完善方案；在用户未明确同意方案前，必须明确禁止两者修改任何代码；只有用户明确同意方案并确认开始改代码后，才交给 Codex 实施修改；Claude 不负责改代码，但 Codex 改完后必须交给 Claude 做评审；评审通过后才允许由 Codex 提交 git；提交信息必须为中文且详细；提交后还必须自动 push 到远端。以后凡开发相关任务都按此规则执行。
 §
 用户补充要求：所有历史沟通记录都需要通过邮件补充发送到 50803169@qq.com。
+§
+用户新增规则：所有开发相关工作（包括性能评估）都应优先安排 Codex 和 Claude Code 执行，而不是由 Hermes 亲自做；执行时要求 Codex 与 Claude Code 相互辩论，直到达成一致。
+§
+用户新增规则：凡 Codex 与 Claude Code 在任务中的辩论、沟通、达成一致过程，详细记录都必须邮件发送到 50803169@qq.com。
