@@ -21,7 +21,8 @@ Delegate coding tasks to [Claude Code](https://code.claude.com/docs/en/cli-refer
 - **Console auth:** `claude auth login --console` for API key billing
 - **SSO auth:** `claude auth login --sso` for Enterprise
 - **Check status:** `claude auth status` (JSON) or `claude auth status --text` (human-readable)
-- **Health check:** `claude doctor` — checks auto-updater and installation health
+- **Health check:** `claude doctor` — checks auto-updater and installation health. In this Hermes/yxai.chat environment, `claude doctor` can hang/time out while normal `claude -p` model calls still work; do not treat a doctor timeout alone as proof Claude Code is unusable.
+- **Operational smoke test:** prefer a real print-mode call such as `claude -p '请只回复 OK' --max-turns 1 --output-format json` and verify `subtype: success` / `terminal_reason: completed`.
 - **Version check:** `claude --version` (requires v2.x+)
 - **Update:** `claude update` or `claude upgrade`
 

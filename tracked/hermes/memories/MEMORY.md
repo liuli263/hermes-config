@@ -17,3 +17,9 @@ Cron one-shot observability in hermes-agent: commit 46c19957 added cron.jobs.sav
 User wants a daily 03:00 China-time Hermes cache cleanup cron that removes files older than 24 hours from ~/.hermes/cache/documents and ~/.hermes/cache/screenshots only.
 §
 job-post-customized-application-pack 已修复邮件发送兜底：脚本会读取本地邮件配置，并在缺少专用 SMTP 用户/密码变量时回退到通用邮箱账号变量，因此当前环境下可成功发送 QQ SMTP 邮件。
+§
+用户对 Hermes Email gateway 的期望：不要依赖邮件已读/未读（UNSEEN）状态；应使用本地持久 UID 高水位/当前时间 baseline，只处理高于水位的新邮件，避免用户点开邮件变已读后 Hermes 漏处理。
+§
+Hermes background process watch notifications can continue arriving after the process is killed/exited due to buffered matches. When monitoring live logs, verify active sessions with process(action='list') and prefer a new timestamp-filtered tail/awk pipeline; ignore notifications from exited proc IDs.
+§
+NewAIPlan 性能对比应优先使用 test/NewAIPlan.Tests/fixtures 中的 site/config/products/input 数据，并通过 NewAIPlan.Runner 跑 main vs 当前分支；不要只依赖 dotnet test 正确性结果来声称性能提升。

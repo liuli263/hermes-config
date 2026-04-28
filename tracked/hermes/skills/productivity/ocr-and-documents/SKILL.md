@@ -12,9 +12,64 @@ metadata:
 
 # PDF & Document Extraction
 
-For DOCX: use `python-docx` (parses actual document structure, far better than OCR).
+For DOCX: use `python-docx` when available (parses actual document structure, far better than OCR). If `python-docx` is unavailable and installing packages is undesirable, use the dependency-free OOXML fallback below.
 For PPTX: see the `powerpoint` skill (uses `python-pptx` with full slide/notes support).
 This skill covers **PDFs and scanned documents**.
+
+## DOCX fallback without python-docx
+
+DOCX files are ZIP archives containing XML under `word/document.xml`. This fallback is useful for quick contract/document edits when `python-docx` is missing.
+
+**Inspect paragraph text:**
+```bash
+TMP=$(mktemp -d)
+unzip -q input.docx -d "$TMP"
+python3 - <<'PY'
+from pathlib import Path
+import xml.etree.ElementTree as ET
+ns={'w':'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
+root=ET.parse(Path('$TMP')/'word/document.xml').getroot()
+for i,p in enumerate(root.findall('.//w:p', ns)):
+    text=''.join(t.text or '' for t in p.findall('.//w:t', ns))
+    if text.strip(): print(i, text)
+PY
+```
+
+**Edit paragraph text while preserving formatting as much as possible:**
+```python
+from pathlib import Path
+import zipfile, shutil, tempfile, xml.etree.ElementTree as ET
+src=Path('input.docx'); out=Path('output.docx')
+ns={'w':'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
+ET.register_namespace('w', ns['w'])
+shutil.copy2(src,out)
+with tempfile.TemporaryDirectory() as td:
+    td=Path(td)
+    with zipfile.ZipFile(out) as z: z.extractall(td)
+    docxml=td/'word/document.xml'
+    tree=ET.parse(docxml); root=tree.getroot()
+    def p_text(p): return ''.join(t.text or '' for t in p.findall('.//w:t', ns))
+    def set_p_text(p, text):
+        ts=p.findall('.//w:t', ns)
+        if not ts: return False
+        ts[0].text=text
+        for t in ts[1:]: t.text=''
+        return True
+    replacements={'old paragraph text':'new paragraph text'}
+    for p in root.findall('.//w:p', ns):
+        txt=p_text(p).strip()
+        if txt in replacements: set_p_text(p, replacements[txt])
+    docxml.write_bytes(ET.tostring(root, encoding='utf-8', xml_declaration=True))
+    tmp=out.with_suffix('.tmp.docx')
+    with zipfile.ZipFile(tmp,'w',zipfile.ZIP_DEFLATED) as z:
+        for f in td.rglob('*'):
+            if f.is_file(): z.write(f, f.relative_to(td).as_posix())
+    tmp.replace(out)
+```
+
+**Verification:** unzip the edited DOCX and assert key strings exist in `word/document.xml` text. For Chinese contract edits, verify exact party names, addresses, clause titles, and updated cooperation-field wording before returning the file.
+
+Limitations: this fallback is best for replacing whole paragraphs or contiguous text runs. It can disturb complex run-level formatting inside a paragraph because it writes the full new text into the first `w:t` and clears remaining runs. For heavily formatted documents or tracked changes, install/use `python-docx` or LibreOffice automation instead.
 
 ## Step 1: Remote URL Available?
 

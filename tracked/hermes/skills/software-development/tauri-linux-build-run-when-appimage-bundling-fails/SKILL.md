@@ -95,6 +95,9 @@ Example rebuild-then-run:
 
 - Single-instance Tauri apps may exit immediately when launched a second time because they signal the already-running instance. Check existing processes/logs before assuming startup failed.
 - A foreground launch that returns quickly is not always a crash; it may have handed control to an existing instance.
+- If a GUI app appears to “not start” but a process exists, suspect a hidden/tray/background window or Wayland/GNOME focus issue rather than a missing service. For Tauri apps, inspect `journalctl --user --no-pager -n 100` for markers such as `Single Instance Callback Triggered`, `主窗口已显示`, `focus + surface 重激活`, or DBus `org.SingleInstance.DBus` calls.
+- Verify installed launchers before diagnosing services: `command -v <binary>`, `dpkg -l | grep -i <app>`, and read `/usr/share/applications/<App>.desktop` or `~/.local/share/applications/*.desktop` to see the real `Exec=` command.
+- GPU/VM warnings such as `libEGL warning`, `MESA: error: ZINK: failed to choose pdev`, or `libayatana-appindicator is deprecated` may be non-fatal if subsequent logs show normal startup.
 - AppImage failure can be a packaging/network issue, not a code/build issue.
 
 ## Verification checklist
